@@ -116,8 +116,8 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
           </div>
         </div>
 
-        {/* Right Mascot Illustration */}
-        <div className="lg:col-span-6 flex justify-center lg:justify-end items-center relative select-none pt-4 lg:pt-0">
+        {/* Right Mascot Illustration - Hidden on Mobile to keep mobile view clean & un-messy */}
+        <div className="hidden md:flex lg:col-span-6 justify-center lg:justify-end items-center relative select-none pt-4 lg:pt-0">
           <div className="relative w-64 sm:w-80 md:w-[460px] h-64 sm:h-80 md:h-[460px] flex items-center justify-center select-none">
             {/* Soft background aura */}
             <div className="absolute inset-0 bg-neutral-100 dark:bg-neutral-800/40 rounded-full blur-3xl opacity-80" />

@@ -5,8 +5,10 @@ import { FlowingMesh } from './FlowingMesh';
 export const AboutSection: React.FC = () => {
   return (
     <section id="about-section" className="w-full relative overflow-hidden py-20">
-      {/* Full-Bleed Edge-to-Edge Flowing Lines Mesh Background */}
-      <FlowingMesh />
+      {/* Full-Bleed Edge-to-Edge Flowing Lines Mesh Background - Hidden on mobile to keep mobile view clean & un-messy */}
+      <div className="hidden md:block">
+        <FlowingMesh />
+      </div>
 
       {/* Content Container constrained to max-w-7xl */}
       <div className="w-full max-w-7xl mx-auto px-6 relative z-10">
