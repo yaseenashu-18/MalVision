@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-color: #FAF9F6;
+    --card-bg: #FFFFFF;
+    --text-primary: #111111;
+    --text-muted: #666666;
+    --border-color: #E6E6E1;
+  }
+
+  .dark {
+    --bg-color: #141416;
+    --card-bg: #1C1C1F;
+    --text-primary: #EEEEEE;
+    --text-muted: #A0A0A0;
+    --border-color: #2D2D32;
+
+    /* Subtle Graphite Texture background */
+    background-color: #141416;
+    background-image: 
+      radial-gradient(at 50% 0%, rgba(255, 255, 255, 0.035) 0%, transparent 75%),
+      radial-gradient(at 0% 50%, rgba(0, 0, 0, 0.4) 0%, transparent 60%),
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.007) 0px, rgba(255, 255, 255, 0.007) 1px, transparent 1px, transparent 4px);
+    background-attachment: fixed;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    transition: background-color 0.25s ease, color 0.25s ease;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Utilities for MalVision design */
+.bg-warm-neutral {
+  background-color: var(--bg-color);
+}
+
+.bg-card-surface {
+  background-color: var(--card-bg);
+}
+
+.border-subtle {
+  border-color: var(--border-color);
+}
+
+/* Restrained Pastel Background Badges for Floating Capability Cards */
+.bg-pastel-purple { background-color: #F3EEFF; color: #6E3CBC; }
+.bg-pastel-green { background-color: #EBFADF; color: #3B821A; }
+.bg-pastel-orange { background-color: #FFF1E5; color: #D96B27; }
+.bg-pastel-blue { background-color: #EEF5FF; color: #2563EB; }
+.bg-pastel-pink { background-color: #FFEFEF; color: #DC2626; }
+.bg-pastel-teal { background-color: #E8F8F5; color: #0D9488; }
+
+.dark .bg-pastel-purple { background-color: rgba(110, 60, 188, 0.25); color: #D8B4FE; }
+.dark .bg-pastel-green { background-color: rgba(59, 130, 26, 0.25); color: #86EFAC; }
+.dark .bg-pastel-orange { background-color: rgba(217, 107, 39, 0.25); color: #FDBA74; }
+.dark .bg-pastel-blue { background-color: rgba(37, 99, 235, 0.25); color: #93C5FD; }
+.dark .bg-pastel-pink { background-color: rgba(220, 38, 38, 0.25); color: #FCA5A5; }
+.dark .bg-pastel-teal { background-color: rgba(13, 148, 136, 0.25); color: #5EEAD4; }
+
+/* Custom Animations */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatSlow 7s ease-in-out 2s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-delayed {
+    animation: none !important;
+  }
+}
