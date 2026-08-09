@@ -7,9 +7,9 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
     <footer className="w-full border-t border-neutral-200/80 dark:border-neutral-800 bg-transparent pt-8 sm:pt-12 pb-6 relative overflow-hidden select-none flex flex-col justify-between items-center min-h-[160px] sm:min-h-[220px]">
-      {/* Giant MalVision Watermark filling top-to-bottom of the footer bar in mobile & desktop */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
-        <span className="text-[120px] sm:text-[180px] md:text-[220px] lg:text-[250px] font-black tracking-tighter text-neutral-300/60 dark:text-neutral-800/60 leading-none select-none opacity-80 sm:opacity-90 transform scale-y-110 sm:scale-y-100">
+      {/* Giant MalVision Watermark - Fully visible, total width fit in mobile & desktop */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden px-2">
+        <span className="text-[17.5vw] sm:text-[16vw] md:text-[210px] lg:text-[240px] font-black tracking-tighter text-neutral-300/90 dark:text-neutral-700/75 leading-none select-none whitespace-nowrap">
           MalVision
         </span>
       </div>
