@@ -72,8 +72,9 @@ export const Hero: React.FC<HeroProps> = ({ onScanSelect, onSeeHowItWorks }) => 
         </div>
       </div>
 
-      {/* Right Column: Dynamically Randomized Capability Cards on Every Refresh */}
-      <div className="lg:col-span-6 min-h-[480px] sm:min-h-[520px] relative select-none">
+      {/* Right Column: Dynamically Randomized Capability Cards */}
+      {/* Desktop Floating Layout */}
+      <div className="hidden lg:block lg:col-span-6 min-h-[480px] sm:min-h-[520px] relative select-none">
         {cards.map((card, idx) => (
           <div
             key={card.id}
@@ -87,6 +88,20 @@ export const Hero: React.FC<HeroProps> = ({ onScanSelect, onSeeHowItWorks }) => 
               onClick={() => onScanSelect(card.tab)}
             />
           </div>
+        ))}
+      </div>
+
+      {/* Mobile Grid Layout - Clean, Stacked, and Organised */}
+      <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full pt-4">
+        {cards.map((card) => (
+          <CapabilityCard
+            key={card.id}
+            title={card.title}
+            description={card.description}
+            icon={card.icon}
+            badgeStyleClass={card.badgeStyleClass}
+            onClick={() => onScanSelect(card.tab)}
+          />
         ))}
       </div>
     </section>

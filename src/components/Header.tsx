@@ -67,23 +67,23 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-warm-neutral/80 dark:bg-[#121214]/80 border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-200">
-      <div className="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-warm-neutral/85 dark:bg-[#121214]/85 border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-200">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand - MalVision Text Only */}
         <button 
           onClick={() => onNavigate('home')} 
-          className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white hover:opacity-90 transition cursor-pointer select-none"
+          className="text-lg sm:text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white hover:opacity-90 transition cursor-pointer select-none shrink-0"
         >
           MalVision
         </button>
 
         {/* Navigation & Actions */}
-        <div className="flex items-center space-x-8">
-          <nav className="relative flex items-center space-x-7 text-sm font-semibold">
+        <div className="flex items-center space-x-2 sm:space-x-6 min-w-0">
+          <nav className="relative flex items-center space-x-2 sm:space-x-5 text-xs sm:text-sm font-semibold overflow-x-auto scrollbar-none py-0.5">
             <button
               ref={dashRef}
               onClick={() => onNavigate('dashboard')}
-              className={`py-1 transition-colors duration-200 cursor-pointer ${
+              className={`py-1 px-1.5 sm:px-0 transition-colors duration-200 cursor-pointer whitespace-nowrap ${
                 activeTab === 'dashboard'
                   ? 'text-neutral-900 dark:text-white'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
             <button
               ref={scanRef}
               onClick={() => onNavigate('scanner')}
-              className={`py-1 transition-colors duration-200 cursor-pointer ${
+              className={`py-1 px-1.5 sm:px-0 transition-colors duration-200 cursor-pointer whitespace-nowrap ${
                 activeTab === 'scanner'
                   ? 'text-neutral-900 dark:text-white'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
             <button
               ref={historyRef}
               onClick={() => onNavigate('history')}
-              className={`py-1 transition-colors duration-200 cursor-pointer ${
+              className={`py-1 px-1.5 sm:px-0 transition-colors duration-200 cursor-pointer whitespace-nowrap ${
                 activeTab === 'history'
                   ? 'text-neutral-900 dark:text-white'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
             <button
               ref={aboutRef}
               onClick={() => onNavigate('about')}
-              className={`py-1 transition-colors duration-200 cursor-pointer ${
+              className={`py-1 px-1.5 sm:px-0 transition-colors duration-200 cursor-pointer whitespace-nowrap ${
                 activeTab === 'about'
                   ? 'text-neutral-900 dark:text-white'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
 
             {/* Smooth Sliding Active Indicator Line */}
             <span
-              className="absolute bottom-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full transition-all duration-300 ease-out pointer-events-none"
+              className="absolute bottom-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full transition-all duration-300 ease-out pointer-events-none hidden sm:block"
               style={{
                 left: `${indicatorStyle.left}px`,
                 width: `${indicatorStyle.width}px`,
@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
           </nav>
 
           {/* Right Tools: Appearance Button & Profile Dropdown / Get Started Button */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
             {/* Appearance Button Dropdown */}
             <div className="relative" ref={settingsDropdownRef}>
               <button

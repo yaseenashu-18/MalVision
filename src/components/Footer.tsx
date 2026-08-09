@@ -6,10 +6,10 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
-    <footer className="w-full border-t border-neutral-200/80 dark:border-neutral-800 bg-transparent pt-12 pb-6 relative overflow-hidden select-none flex flex-col justify-between items-center min-h-[180px] sm:min-h-[220px]">
+    <footer className="w-full border-t border-neutral-200/80 dark:border-neutral-800 bg-transparent pt-8 sm:pt-12 pb-6 relative overflow-hidden select-none flex flex-col justify-between items-center min-h-[160px] sm:min-h-[220px]">
       {/* Giant MalVision Watermark filling top-to-bottom of the footer bar */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
-        <span className="text-[120px] sm:text-[180px] md:text-[220px] lg:text-[250px] font-black tracking-tighter text-neutral-300/60 dark:text-neutral-800/60 leading-none select-none opacity-80 sm:opacity-90 transform scale-y-110 sm:scale-y-100">
+        <span className="text-[52px] sm:text-[140px] md:text-[200px] lg:text-[250px] font-black tracking-tighter text-neutral-300/50 dark:text-neutral-800/50 leading-none select-none opacity-60 sm:opacity-80 transform scale-y-110 sm:scale-y-100">
           MalVision
         </span>
       </div>
@@ -18,9 +18,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       <div className="flex-1" />
 
       {/* Rights, Terms, Privacy, Cookies & Git links positioned over the watermark */}
-      <div className="w-full max-w-7xl mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-medium text-neutral-600 dark:text-neutral-400 backdrop-blur-[1px]">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-[11px] sm:text-xs font-medium text-neutral-600 dark:text-neutral-400 backdrop-blur-[1px] text-center md:text-left">
         {/* Copyright & Legal links */}
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 sm:gap-8">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-8">
           <span>© 2024 MalVision. All rights reserved.</span>
           <button onClick={() => onNavigate?.('about')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
             Terms of Service
