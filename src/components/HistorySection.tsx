@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ShieldCheck, ArrowRight, Lock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronUp, LogIn, Sparkles } from 'lucide-react';
+import { Clock, ShieldCheck, ArrowRight, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronUp, LogIn, Sparkles } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import mascotImg from '../assets/robot_mascot.png';
