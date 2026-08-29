@@ -47,7 +47,7 @@ declare global {
 
 export const getGoogleClientId = (): string => {
   let id = (import.meta.env && import.meta.env.VITE_GOOGLE_CLIENT_ID) || 
-    '674911223359-ur8764baf8pe7f38t9egvkller5kmtcb.apps.googleusercontent.com';
+    '21441140793-33kb6kk0on8sm8mvhpgu4055iqko0mdd.apps.googleusercontent.com';
   return id.replace(/["']/g, '').trim();
 };
 

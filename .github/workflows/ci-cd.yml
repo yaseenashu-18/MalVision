@@ -24,7 +24,7 @@ jobs:
     env:
       VITE_MONGODB_URI: ${{ secrets.VITE_MONGODB_URI || 'mongodb+srv://yaseenashu18:yaseenashu18@threat-detection.f39agqr.mongodb.net/?appName=threat-detection' }}
       VITE_MONGODB_DB_NAME: 'threat-detection'
-      VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || '674911223359-ur8764baf8pe7f38t9egvkller5kmtcb.apps.googleusercontent.com' }}
+      VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || '21441140793-33kb6kk0on8sm8mvhpgu4055iqko0mdd.apps.googleusercontent.com' }}
 
     steps:
       - name: Checkout Repository
