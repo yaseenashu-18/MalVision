@@ -1,5 +1,5 @@
 import type { ScanResultData } from '../types';
-import { syncScanToMongoDB } from './mongoService';
+import { syncScanToMongoDB, fetchMongoScanHistory, deleteMongoScan, clearMongoScanHistory } from './mongoService';
 
 const STORAGE_KEY = 'malvision_scan_history';
 
@@ -68,15 +68,27 @@ export const DEFAULT_HISTORY: ScanResultData[] = [
 
 export function getScanHistory(): ScanResultData[] {
   try {
+    const mongoScans = fetchMongoScanHistory();
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_HISTORY));
-      return DEFAULT_HISTORY;
+    
+    let localScans: ScanResultData[] = DEFAULT_HISTORY;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        localScans = parsed.filter(item => item && typeof item.target === 'string' && typeof item.id === 'string');
+      }
     }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return DEFAULT_HISTORY;
-    const valid = parsed.filter(item => item && typeof item.target === 'string' && typeof item.id === 'string');
-    return valid.length > 0 ? valid : DEFAULT_HISTORY;
+
+    // Merge mongo database scans with local scans, deduplicating by ID
+    const mergedMap = new Map<string, ScanResultData>();
+    [...mongoScans, ...localScans].forEach((scan) => {
+      if (scan && scan.id) {
+        mergedMap.set(scan.id, scan);
+      }
+    });
+
+    const combined = Array.from(mergedMap.values());
+    return combined.length > 0 ? combined : DEFAULT_HISTORY;
   } catch (e) {
     console.error('Error reading scan history:', e);
     return DEFAULT_HISTORY;
@@ -86,7 +98,6 @@ export function getScanHistory(): ScanResultData[] {
 export function saveScanToHistory(scan: ScanResultData): ScanResultData[] {
   try {
     const current = getScanHistory();
-    // Prepend new scan, avoiding exact ID duplicates
     const filtered = current.filter(item => item.id !== scan.id);
     const updated = [scan, ...filtered];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -110,6 +121,7 @@ export function removeScanFromHistory(id: string): ScanResultData[] {
     const current = getScanHistory();
     const updated = current.filter(item => item.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    deleteMongoScan(id);
     return updated;
   } catch (e) {
     console.error('Error removing scan from history:', e);
@@ -120,6 +132,7 @@ export function removeScanFromHistory(id: string): ScanResultData[] {
 export function clearScanHistory(): ScanResultData[] {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    clearMongoScanHistory();
     return [];
   } catch (e) {
     console.error('Error clearing scan history:', e);

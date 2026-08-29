@@ -16,9 +16,20 @@ declare global {
             client_id: string;
             callback: (response: { credential: string }) => void;
             auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
           }) => void;
-          prompt: (notification?: (notification: { isNotDisplayed: () => boolean; getNotDisplayedReason: () => string }) => void) => void;
-          renderButton: (parent: HTMLElement, options: { theme?: string; size?: string; width?: number }) => void;
+          prompt: (notification?: (notification: { 
+            isNotDisplayed: () => boolean; 
+            getNotDisplayedReason: () => string;
+            isSkippedMoment: () => boolean;
+            getSkippedReason: () => string;
+            isDismissedMoment: () => boolean;
+            getDismissedReason: () => string;
+          }) => void) => void;
+          renderButton: (
+            parent: HTMLElement, 
+            options: { theme?: 'outline' | 'filled_blue' | 'filled_black'; size?: 'large' | 'medium' | 'small'; width?: number; shape?: 'rectangular' | 'pill'; logo_alignment?: 'left' | 'center' }
+          ) => void;
         };
       };
     };
@@ -27,10 +38,10 @@ declare global {
 
 export const GOOGLE_CLIENT_ID = 
   (import.meta.env && import.meta.env.VITE_GOOGLE_CLIENT_ID) || 
-  '';
+  '674911223359-kadmn3hpm7toikruvthniveaepnphv11.apps.googleusercontent.com';
 
 /**
- * Decodes a Google OAuth JWT Credential token safely
+ * Decodes a Google OAuth JWT Credential token safely to extract real Google user profile data
  */
 export function decodeGoogleJwt(token: string): Partial<GoogleUserProfile> | null {
   try {
@@ -46,14 +57,14 @@ export function decodeGoogleJwt(token: string): Partial<GoogleUserProfile> | nul
     const parsed = JSON.parse(jsonPayload);
     return {
       name: parsed.name || parsed.given_name || 'Google User',
-      email: parsed.email || 'user@gmail.com',
+      email: parsed.email,
       avatar: parsed.picture,
       sub: parsed.sub,
       emailVerified: parsed.email_verified,
       provider: 'google',
     };
   } catch (e) {
-    console.error('Error parsing Google OAuth token:', e);
+    console.error('Error parsing Google OAuth JWT token:', e);
     return null;
   }
 }
@@ -89,72 +100,107 @@ export function loadGoogleSdk(): Promise<boolean> {
 }
 
 /**
- * Perform Google OAuth Authentication
+ * Renders the official Google Sign-In Button on a given DOM container element
+ */
+export async function renderGoogleSignInButton(
+  container: HTMLElement,
+  onSuccess: (user: GoogleUserProfile) => void,
+  onError?: (errMessage: string) => void
+): Promise<boolean> {
+  const loaded = await loadGoogleSdk();
+  const googleId = window.google?.accounts?.id;
+  if (!loaded || !googleId) {
+    onError?.('Google Identity Services SDK failed to initialize.');
+    return false;
+  }
+
+  try {
+    googleId.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (response) => {
+        if (response.credential) {
+          const decoded = decodeGoogleJwt(response.credential);
+          if (decoded && decoded.email) {
+            onSuccess({
+              name: decoded.name || 'Google User',
+              email: decoded.email,
+              avatar: decoded.avatar,
+              sub: decoded.sub,
+              emailVerified: decoded.emailVerified,
+              provider: 'google',
+            });
+            return;
+          }
+        }
+        onError?.('Google authentication returned invalid credentials.');
+      },
+    });
+
+    // Clear previous button content
+    container.innerHTML = '';
+    googleId.renderButton(container, {
+      theme: 'filled_black',
+      size: 'large',
+      width: 280,
+      shape: 'pill',
+      logo_alignment: 'left',
+    });
+
+    return true;
+  } catch (err: any) {
+    console.error('Failed to render Google Sign-In button:', err);
+    onError?.(err?.message || 'Failed to render Google Sign-In button.');
+    return false;
+  }
+}
+
+/**
+ * Performs explicit Google OAuth Prompt authentication.
+ * No hardcoded dummy fallbacks are used. Real token or explicit failure.
  */
 export async function authenticateWithGoogle(): Promise<GoogleUserProfile> {
-  // Load Google SDK script
-  await loadGoogleSdk();
+  const loaded = await loadGoogleSdk();
+  const googleId = window.google?.accounts?.id;
+  if (!loaded || !googleId) {
+    throw new Error('Google Identity Services SDK failed to load.');
+  }
 
-  return new Promise((resolve) => {
-    // If real Google SDK is available and configured
-    if (window.google?.accounts?.id && GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.includes('your-google-client-id')) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response) => {
-            if (response.credential) {
-              const decoded = decodeGoogleJwt(response.credential);
-              if (decoded && decoded.email) {
-                resolve({
-                  name: decoded.name || 'Google Analyst',
-                  email: decoded.email,
-                  avatar: decoded.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-                  provider: 'google',
-                  emailVerified: true,
-                });
-                return;
-              }
+  return new Promise((resolve, reject) => {
+    try {
+      googleId.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response) => {
+          if (response.credential) {
+            const decoded = decodeGoogleJwt(response.credential);
+            if (decoded && decoded.email) {
+              resolve({
+                name: decoded.name || 'Google User',
+                email: decoded.email,
+                avatar: decoded.avatar,
+                sub: decoded.sub,
+                emailVerified: decoded.emailVerified,
+                provider: 'google',
+              });
+              return;
             }
-            // Fallback user if credential decode yields empty
-            resolve({
-              name: 'Security Analyst',
-              email: 'analyst.malvision@gmail.com',
-              avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-              provider: 'google',
-              emailVerified: true,
-            });
-          },
-        });
-
-        // Trigger Google One Tap or prompt
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed()) {
-            console.log('Google prompt not displayed:', notification.getNotDisplayedReason());
-            // Resolve fallback demo Google user if prompt is blocked by browser policy
-            resolve({
-              name: 'Security Analyst',
-              email: 'analyst.malvision@gmail.com',
-              avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-              provider: 'google',
-              emailVerified: true,
-            });
           }
-        });
-        return;
-      } catch (err) {
-        console.warn('Google accounts initialize error:', err);
-      }
-    }
-
-    // Default fast Google OAuth fallback response
-    setTimeout(() => {
-      resolve({
-        name: 'Security Analyst',
-        email: 'analyst.malvision@gmail.com',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
-        provider: 'google',
-        emailVerified: true,
+          reject(new Error('Google authentication returned no credentials.'));
+        },
       });
-    }, 600);
+
+      googleId.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
+          let reason = 'closed';
+          if (notification.isNotDisplayed()) reason = notification.getNotDisplayedReason();
+          else if (notification.isSkippedMoment()) reason = notification.getSkippedReason();
+          else if (notification.isDismissedMoment()) reason = notification.getDismissedReason();
+          
+          console.warn('Google OAuth prompt not completed. Reason:', reason);
+          reject(new Error(`Google sign-in popup was ${reason}. Please click the Google Sign-In button above.`));
+        }
+      });
+    } catch (err: any) {
+      reject(new Error(err?.message || 'Google OAuth prompt failed.'));
+    }
   });
 }
