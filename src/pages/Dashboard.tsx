@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Hero } from '../components/Hero';
 import { HowItWorksSection } from '../components/HowItWorksSection';
 import { ThreatScanner } from '../components/ThreatScanner';
@@ -16,6 +16,21 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-scan', onScanTabSelect, user }) => {
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  const handleToggleHowItWorks = () => {
+    setShowHowItWorks((prev) => {
+      const nextState = !prev;
+      if (nextState) {
+        setTimeout(() => {
+          const el = document.getElementById('how-it-works-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
+      }
+      return nextState;
+    });
+  };
+
   return (
     <main className="w-full space-y-12">
       {/* Hero Section */}
@@ -25,14 +40,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
           const el = document.getElementById('threat-scanner-section');
           if (el) el.scrollIntoView({ behavior: 'smooth' });
         }}
-        onSeeHowItWorks={() => {
-          const el = document.getElementById('how-it-works-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
+        onSeeHowItWorks={handleToggleHowItWorks}
       />
 
-      {/* How It Works Section (Placed directly between Dashboard and Threat Scanner) */}
-      <HowItWorksSection />
+      {/* How It Works Section (Only shows when clicking "See how it works" button) */}
+      <HowItWorksSection isVisible={showHowItWorks} />
 
       {/* Threat Scanner Container */}
       <ThreatScanner
