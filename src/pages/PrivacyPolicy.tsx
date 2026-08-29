@@ -11,37 +11,37 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
   }, []);
 
   return (
-    <div className="min-h-screen py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-12 animate-in fade-in duration-200">
-      {/* Top Back Navigation Bar */}
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen py-8 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8 sm:space-y-12 animate-in fade-in duration-200">
+      {/* Top Navigation Bar - Short & perfectly aligned on mobile */}
+      <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => onNavigate('home')}
-          className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/60 dark:border-neutral-700/60 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition cursor-pointer"
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/60 dark:border-neutral-700/60 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition cursor-pointer shrink-0"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to MalVision</span>
         </button>
 
-        <span className="text-xs font-mono text-neutral-500 dark:text-neutral-400">
-          Privacy Policy &bull; MalVision Security
+        <span className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400 truncate">
+          Privacy Policy &bull; Security
         </span>
       </div>
 
       {/* Main Title */}
-      <div className="space-y-4 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-8">
-        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-neutral-900 dark:text-white">
+      <div className="space-y-3 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6 sm:pb-8">
+        <h1 className="text-3xl sm:text-6xl font-black tracking-tight text-neutral-900 dark:text-white">
           Privacy Policy
         </h1>
-        <p className="text-base sm:text-lg font-serif italic text-neutral-600 dark:text-neutral-400 leading-relaxed">
+        <p className="text-sm sm:text-lg font-serif italic text-neutral-600 dark:text-neutral-400 leading-relaxed">
           MalVision is built around an unyielding commitment to your digital privacy and data security.
         </p>
       </div>
 
       {/* Fluid Cursive & Elegant Text Body */}
-      <div className="space-y-10 font-serif italic text-sm sm:text-base leading-relaxed text-neutral-800 dark:text-neutral-200">
+      <div className="space-y-8 sm:space-y-10 font-serif italic text-sm sm:text-base leading-relaxed text-neutral-800 dark:text-neutral-200">
         
-        <div className="space-y-3">
-          <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        <div className="space-y-2">
+          <h2 className="font-sans not-italic text-base sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
             Local-First Inspection Guarantee
           </h2>
           <p>
@@ -49,8 +49,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        <div className="space-y-2">
+          <h2 className="font-sans not-italic text-base sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
             Google Authentication Scope
           </h2>
           <p>
@@ -58,8 +58,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        <div className="space-y-2">
+          <h2 className="font-sans not-italic text-base sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
             Threat Intelligence & Hash Indexing
           </h2>
           <p>
@@ -67,8 +67,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        <div className="space-y-2">
+          <h2 className="font-sans not-italic text-base sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
             Data Storage & Complete Control
           </h2>
           <p>
@@ -76,8 +76,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <div className="space-y-3">
-          <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+        <div className="space-y-2">
+          <h2 className="font-sans not-italic text-base sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
             Encryption & Network Safeguards
           </h2>
           <p>
@@ -88,12 +88,12 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
       </div>
 
       {/* Footer Return Link */}
-      <div className="pt-10 border-t border-neutral-200/60 dark:border-neutral-800/60 flex justify-center">
+      <div className="pt-6 sm:pt-10 border-t border-neutral-200/60 dark:border-neutral-800/60 flex justify-center">
         <button
           onClick={() => onNavigate('home')}
-          className="px-6 py-3 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-sans not-italic font-semibold text-xs hover:opacity-90 transition cursor-pointer"
+          className="px-5 py-2.5 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-sans not-italic font-semibold text-xs hover:opacity-90 transition cursor-pointer shadow-md"
         >
-          Return to MalVision
+          Back to MalVision
         </button>
       </div>
     </div>

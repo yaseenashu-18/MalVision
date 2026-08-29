@@ -12,7 +12,7 @@ interface ScannerViewportProps {
 
 export const ScannerViewport: React.FC<ScannerViewportProps> = ({ activeTab }) => {
   return (
-    <div className="w-full h-[360px] flex-1 relative overflow-hidden mt-4">
+    <div className="w-full min-h-[320px] sm:h-[360px] flex-1 relative overflow-y-auto mt-3 sm:mt-4">
       {activeTab === 'file-scan' && <FileScan />}
       {activeTab === 'preview-file' && <PreviewFile />}
       {activeTab === 'pdf-inspector' && <PdfInspector />}
