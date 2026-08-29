@@ -175,7 +175,7 @@ export const AppContent: React.FC = () => {
           onNavigate={handleNavigate} 
           onOpenHistory={() => setHistoryModalOpen(true)}
           onGetStarted={() => handleOpenAuth('signup')}
-          onOpenSettings={handleOpenOpenSettings => handleOpenSettings()}
+          onOpenSettings={handleOpenSettings}
           user={user}
           onSignOut={handleSignOut}
         />
