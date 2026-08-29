@@ -11,14 +11,13 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
   const [loading, setLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<{ message: string; isOriginMismatch?: boolean } | null>(null);
   const [authenticatedUser, setAuthenticatedUser] = useState<GoogleUserProfile | null>(null);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setAuthError(null);
-      // Small timeout to allow container to mount in DOM
       const timer = setTimeout(() => {
         if (googleBtnRef.current) {
           renderGoogleSignInButton(
@@ -45,7 +44,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
   if (!isOpen) return null;
 
-  const handleDirectGoogleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setAuthError(null);
     try {
@@ -60,7 +59,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     } catch (err: any) {
       console.warn('Google sign-in exception:', err);
       setLoading(false);
-      setAuthError(err?.message || 'Google sign-in was not completed.');
+      const msg = err?.message || 'Google sign-in was not completed.';
+      const isOriginMismatch = msg.toLowerCase().includes('origin') || msg.toLowerCase().includes('mismatch') || msg.toLowerCase().includes('400');
+      setAuthError({ message: msg, isOriginMismatch });
     }
   };
 
@@ -91,9 +92,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
         {/* Error Notification Banner */}
         {authError && (
-          <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center space-x-2 animate-in fade-in">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span className="text-[11px] leading-tight">{authError}</span>
+          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs space-y-1.5 animate-in fade-in">
+            <div className="flex items-center space-x-2 font-bold">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>{authError.isOriginMismatch ? 'Google Origin Setup Required' : 'Authentication Notice'}</span>
+            </div>
+            <p className="text-[11px] opacity-90 leading-relaxed">
+              {authError.isOriginMismatch ? (
+                <>
+                  Google Cloud Console requires registering <code>https://malvision.vercel.app</code> and <code>http://localhost:5173</code> under <strong>Authorised JavaScript origins</strong>.
+                </>
+              ) : (
+                authError.message
+              )}
+            </p>
           </div>
         )}
 
@@ -111,7 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               <>
                 <Loader2 className="w-9 h-9 text-neutral-900 dark:text-white animate-spin mx-auto" />
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Signing in with Google...
+                  Connecting to Google OAuth...
                 </p>
               </>
             )}
@@ -121,9 +133,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
             {/* Google Rendered GSI Button Container */}
             <div ref={googleBtnRef} className="w-full flex items-center justify-center min-h-[44px]" />
 
-            {/* Clean Backup Google Button */}
+            {/* Clean Single Google Button Trigger */}
             <button
-              onClick={handleDirectGoogleSignIn}
+              onClick={handleGoogleSignIn}
               className="w-full py-3 px-4 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold text-xs hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-2.5 shadow-sm active:scale-[0.98]"
             >
               <svg className="w-4 h-4 bg-white rounded-full p-0.5 shrink-0" viewBox="0 0 24 24">

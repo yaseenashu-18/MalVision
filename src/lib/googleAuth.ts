@@ -31,14 +31,25 @@ declare global {
             options: { theme?: 'outline' | 'filled_blue' | 'filled_black'; size?: 'large' | 'medium' | 'small'; width?: number; shape?: 'rectangular' | 'pill'; logo_alignment?: 'left' | 'center' }
           ) => void;
         };
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: { access_token?: string; error?: string; error_description?: string }) => void;
+          }) => {
+            requestAccessToken: () => void;
+          };
+        };
       };
     };
   }
 }
 
-export const GOOGLE_CLIENT_ID = 
-  (import.meta.env && import.meta.env.VITE_GOOGLE_CLIENT_ID) || 
-  '674911223359-kadmn3hpm7toikruvthniveaepnphv11.apps.googleusercontent.com';
+export const getGoogleClientId = (): string => {
+  let id = (import.meta.env && import.meta.env.VITE_GOOGLE_CLIENT_ID) || 
+    '674911223359-kadmn3hpm7toikruvthniveaepnphv11.apps.googleusercontent.com';
+  return id.replace(/["']/g, '').trim();
+};
 
 /**
  * Decodes a Google OAuth JWT Credential token safely to extract real Google user profile data
@@ -74,7 +85,7 @@ export function decodeGoogleJwt(token: string): Partial<GoogleUserProfile> | nul
  */
 export function loadGoogleSdk(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (window.google?.accounts?.id) {
+    if (window.google?.accounts?.id || window.google?.accounts?.oauth2) {
       resolve(true);
       return;
     }
@@ -114,9 +125,11 @@ export async function renderGoogleSignInButton(
     return false;
   }
 
+  const clientId = getGoogleClientId();
+
   try {
     googleId.initialize({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: clientId,
       callback: (response) => {
         if (response.credential) {
           const decoded = decodeGoogleJwt(response.credential);
@@ -136,7 +149,6 @@ export async function renderGoogleSignInButton(
       },
     });
 
-    // Clear previous button content
     container.innerHTML = '';
     googleId.renderButton(container, {
       theme: 'filled_black',
@@ -155,20 +167,71 @@ export async function renderGoogleSignInButton(
 }
 
 /**
- * Performs explicit Google OAuth Prompt authentication.
- * No hardcoded dummy fallbacks are used. Real token or explicit failure.
+ * Performs Google OAuth Authentication using Token Client or GSI Prompt
  */
 export async function authenticateWithGoogle(): Promise<GoogleUserProfile> {
   const loaded = await loadGoogleSdk();
-  const googleId = window.google?.accounts?.id;
-  if (!loaded || !googleId) {
+  if (!loaded) {
     throw new Error('Google Identity Services SDK failed to load.');
+  }
+
+  const clientId = getGoogleClientId();
+
+  // Primary: OAuth 2.0 Popup Token Client (more compatible with local & web origins)
+  if (window.google?.accounts?.oauth2) {
+    return new Promise((resolve, reject) => {
+      try {
+        const client = window.google!.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile openid',
+          callback: async (response) => {
+            if (response.error) {
+              reject(new Error(response.error_description || response.error));
+              return;
+            }
+            if (response.access_token) {
+              try {
+                // Fetch user info from Google userinfo API
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${response.access_token}` },
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  resolve({
+                    name: data.name || data.given_name || 'Google User',
+                    email: data.email,
+                    avatar: data.picture,
+                    sub: data.sub,
+                    emailVerified: data.email_verified,
+                    provider: 'google',
+                  });
+                  return;
+                }
+              } catch (e) {
+                console.error('Failed to fetch Google userinfo:', e);
+              }
+            }
+            reject(new Error('Google login completed but token fetch failed.'));
+          },
+        });
+
+        client.requestAccessToken();
+      } catch (err: any) {
+        reject(err);
+      }
+    });
+  }
+
+  // Fallback: GSI Prompt
+  const googleId = window.google?.accounts?.id;
+  if (!googleId) {
+    throw new Error('Google Identity Services client is unavailable.');
   }
 
   return new Promise((resolve, reject) => {
     try {
       googleId.initialize({
-        client_id: GOOGLE_CLIENT_ID,
+        client_id: clientId,
         callback: (response) => {
           if (response.credential) {
             const decoded = decodeGoogleJwt(response.credential);
@@ -195,8 +258,7 @@ export async function authenticateWithGoogle(): Promise<GoogleUserProfile> {
           else if (notification.isSkippedMoment()) reason = notification.getSkippedReason();
           else if (notification.isDismissedMoment()) reason = notification.getDismissedReason();
           
-          console.warn('Google OAuth prompt not completed. Reason:', reason);
-          reject(new Error(`Google sign-in popup was ${reason}. Please click the Google Sign-In button above.`));
+          reject(new Error(`Google sign-in popup was ${reason}. Please use the Google Sign-In button.`));
         }
       });
     } catch (err: any) {
