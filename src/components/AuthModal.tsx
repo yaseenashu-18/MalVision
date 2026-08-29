@@ -1,25 +1,35 @@
 import React, { useState } from 'react';
-import { X, CheckCircle2 } from 'lucide-react';
+import { X, CheckCircle2, Loader2 } from 'lucide-react';
+import { authenticateWithGoogle, type GoogleUserProfile } from '../lib/googleAuth';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'signin' | 'signup';
-  onAuthSuccess?: (user: { name: string; email: string }) => void;
+  onAuthSuccess?: (user: GoogleUserProfile) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess }) => {
-  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [authenticatedUser, setAuthenticatedUser] = useState<GoogleUserProfile | null>(null);
 
   if (!isOpen) return null;
 
-  const handleGoogleAuth = () => {
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      onAuthSuccess?.({ name: 'Security Analyst', email: 'analyst@gmail.com' });
-      onClose();
-    }, 900);
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    try {
+      const user = await authenticateWithGoogle();
+      setAuthenticatedUser(user);
+      setTimeout(() => {
+        setLoading(false);
+        onAuthSuccess?.(user);
+        onClose();
+        setAuthenticatedUser(null);
+      }, 700);
+    } catch (err) {
+      console.error('Google OAuth authentication failed:', err);
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,20 +68,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
             Get Started with MalVision
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed px-2">
-            Sign in with Google to save scan history, organize reports, and protect your device.
+            Sign in with Google OAuth to save scan history, sync MongoDB reports, and protect your device.
           </p>
         </div>
 
         {/* Action Body */}
-        {submitted ? (
+        {loading ? (
           <div className="py-6 text-center space-y-3 animate-in fade-in duration-200">
-            <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-            <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-              Authenticating with Google...
-            </h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Welcome back to MalVision.
-            </p>
+            {authenticatedUser ? (
+              <>
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Welcome, {authenticatedUser.name}!
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Google OAuth login verified: {authenticatedUser.email}
+                </p>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-10 h-10 text-neutral-900 dark:text-white animate-spin mx-auto" />
+                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                  Connecting to Google OAuth...
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Verifying identity with Google accounts...
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-4 pt-2">
@@ -81,7 +105,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
               className="w-full py-3.5 px-4 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold text-xs hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-3 shadow-md active:scale-[0.98]"
             >
               {/* Google G Logo SVG */}
-              <svg className="w-4 h-4 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 bg-white rounded-full p-0.5 shrink-0" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

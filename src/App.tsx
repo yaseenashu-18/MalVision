@@ -12,10 +12,10 @@ export const AppContent: React.FC = () => {
   const [scannerTab, setScannerTab] = useState<ScannerTabId>('file-scan');
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'history' | 'plans'>('appearance');
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
 
   // Authenticated user state
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(null);
 
   // Track active section dynamically as user scrolls through the page
   useEffect(() => {
@@ -73,12 +73,12 @@ export const AppContent: React.FC = () => {
     setScannerTab(tab);
   };
 
-  const handleOpenSettings = (tab: 'profile' | 'appearance' | 'privacy' | 'history' | 'plans' = 'appearance') => {
+  const handleOpenSettings = (tab: 'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans' = 'database') => {
     setSettingsTab(tab);
     setSettingsModalOpen(true);
   };
 
-  const handleAuthSuccess = (userData: { name: string; email: string }) => {
+  const handleAuthSuccess = (userData: { name: string; email: string; avatar?: string; provider?: string }) => {
     setUser(userData);
   };
 

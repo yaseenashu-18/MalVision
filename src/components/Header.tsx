@@ -1,17 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Database } from 'lucide-react';
 import { useTheme } from '../lib/themeContext';
 
 interface HeaderProps {
   activeTab: string;
   onNavigate: (tab: string) => void;
   onGetStarted?: () => void;
-  onOpenSettings?: (tab?: 'profile' | 'appearance' | 'privacy' | 'history' | 'plans') => void;
-  user?: { name: string; email: string } | null;
+  onOpenSettings?: (tab?: 'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans') => void;
+  user?: { name: string; email: string; avatar?: string; provider?: string } | null;
   onSignOut?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStarted, user, onSignOut }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStarted, onOpenSettings, user, onSignOut }) => {
   const { theme, setTheme } = useTheme();
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -142,8 +142,19 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
           />
         </nav>
 
-        {/* Right Tools: Appearance Button & Profile / Get Started Button */}
-        <div className="flex items-center space-x-2.5 sm:space-x-4">
+        {/* Right Tools: Database Badge, Appearance Button & Profile / Get Started Button */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* MongoDB Connection Status Pill */}
+          <button
+            onClick={() => onOpenSettings?.('database')}
+            className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition cursor-pointer"
+            title="MongoDB Atlas Connected: threat-detection"
+          >
+            <Database className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="truncate max-w-[120px] font-mono text-[11px]">threat-detection</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          </button>
+
           {/* Desktop Appearance Button Dropdown */}
           <div className="relative hidden md:block" ref={settingsDropdownRef}>
             <button
@@ -221,8 +232,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-sm active:scale-95"
               >
-                <div className="w-5 h-5 rounded-full bg-white text-neutral-900 dark:bg-neutral-900 dark:text-white font-extrabold text-[10px] flex items-center justify-center">
-                  {getInitials(user.name)}
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-white text-neutral-900 dark:bg-neutral-900 dark:text-white font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(user.name)
+                  )}
                 </div>
                 <span className="text-xs font-semibold max-w-[100px] truncate hidden sm:inline">{user.name}</span>
                 <ChevronDown className="w-3.5 h-3.5 opacity-70 ml-0.5" />

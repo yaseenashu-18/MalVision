@@ -1,4 +1,5 @@
 import type { ScanResultData } from '../types';
+import { syncScanToMongoDB } from './mongoService';
 
 const STORAGE_KEY = 'malvision_scan_history';
 
@@ -89,6 +90,14 @@ export function saveScanToHistory(scan: ScanResultData): ScanResultData[] {
     const filtered = current.filter(item => item.id !== scan.id);
     const updated = [scan, ...filtered];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    
+    // Sync scan record to MongoDB threat-detection database
+    try {
+      syncScanToMongoDB(scan);
+    } catch (err) {
+      console.warn('MongoDB sync notice:', err);
+    }
+
     return updated;
   } catch (e) {
     console.error('Error saving scan to history:', e);
