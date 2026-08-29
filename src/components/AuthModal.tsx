@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { authenticateWithGoogle, renderGoogleSignInButton, type GoogleUserProfile } from '../lib/googleAuth';
+import robotMascot from '../assets/robot_mascot.png';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -83,12 +84,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           <X className="w-4 h-4" />
         </button>
 
-        {/* Clean Modal Header with Short Message */}
-        <div className="text-center space-y-1.5 pt-2">
+        {/* Clean Modal Header with MalVision Logo */}
+        <div className="text-center space-y-2 pt-2 flex flex-col items-center">
+          <div className="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200/60 dark:border-neutral-700/60 p-2.5 flex items-center justify-center shadow-sm">
+            <img src={robotMascot} alt="MalVision Logo" className="w-9 h-9 object-contain" />
+          </div>
           <h2 className="text-2xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
             MalVision
           </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-[240px]">
             Inspect files, links, and documents safely with threat intelligence.
           </p>
         </div>
