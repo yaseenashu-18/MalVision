@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Hero } from '../components/Hero';
-import { HowItWorksSection } from '../components/HowItWorksSection';
 import { ThreatScanner } from '../components/ThreatScanner';
 import { FeaturesSection } from '../components/FeaturesSection';
 import { AboutSection } from '../components/AboutSection';
@@ -23,8 +22,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
   };
 
   return (
-    <main className="w-full space-y-4 sm:space-y-8">
-      {/* Hero Section */}
+    <main className="w-full space-y-8 sm:space-y-12">
+      {/* Hero Section containing inline toggleable HowItWorksSection directly beneath See how it works button */}
       <Hero
         onScanSelect={(tab) => {
           onScanTabSelect(tab);
@@ -32,10 +31,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
           if (el) el.scrollIntoView({ behavior: 'smooth' });
         }}
         onSeeHowItWorks={handleToggleHowItWorks}
+        isHowItWorksVisible={showHowItWorks}
       />
-
-      {/* How It Works Section (Tightly aligned below See how it works button) */}
-      <HowItWorksSection isVisible={showHowItWorks} />
 
       {/* Threat Scanner Container */}
       <ThreatScanner
