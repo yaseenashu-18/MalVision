@@ -1,7 +1,7 @@
 import React from 'react';
 import { Hero } from '../components/Hero';
 import { ThreatScanner } from '../components/ThreatScanner';
-import { HistorySection } from '../components/HistorySection';
+import { FeaturesSection } from '../components/FeaturesSection';
 import { AboutSection } from '../components/AboutSection';
 import type { ScannerTabId } from '../types';
 
@@ -13,7 +13,7 @@ interface DashboardProps {
   user?: { name: string; email: string } | null;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-scan', onScanTabSelect, user, onOpenAuth }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-scan', onScanTabSelect, user }) => {
   return (
     <main className="w-full space-y-12">
       {/* Hero Section */}
@@ -36,8 +36,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
         user={user}
       />
 
-      {/* Scan History Section (Dynamic per-user & guest session) */}
-      <HistorySection user={user} onOpenAuth={onOpenAuth} />
+      {/* Features & Security Protection Section */}
+      <FeaturesSection />
 
       {/* About Section */}
       <AboutSection />

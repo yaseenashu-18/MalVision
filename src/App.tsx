@@ -7,6 +7,7 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
 import { CookiePolicy } from './pages/CookiePolicy';
 import { AuthModal } from './components/AuthModal';
+import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
 import type { ScannerTabId } from './types';
 
@@ -15,6 +16,7 @@ export const AppContent: React.FC = () => {
   const [activeScrollSection, setActiveScrollSection] = useState<string>('dashboard');
   const [scannerTab, setScannerTab] = useState<ScannerTabId>('file-scan');
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
 
@@ -41,6 +43,11 @@ export const AppContent: React.FC = () => {
 
     if (cleanPage === 'login' || cleanPage === 'signup') {
       handleOpenAuth(cleanPage as 'login' | 'signup');
+      return;
+    }
+
+    if (cleanPage === 'history') {
+      setHistoryModalOpen(true);
       return;
     }
 
@@ -75,18 +82,18 @@ export const AppContent: React.FC = () => {
       if (window.location.hash !== '#/scanner') {
         window.history.pushState(null, '', '#/scanner');
       }
-    } else if (cleanPage === 'history') {
+    } else if (cleanPage === 'features') {
       setTimeout(() => {
-        const el = document.getElementById('scan-history-section');
+        const el = document.getElementById('features-section');
         if (el) {
           const yOffset = -80;
           const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
           window.scrollTo({ top: y, behavior: 'smooth' });
         }
       }, 50);
-      setActiveScrollSection('history');
-      if (window.location.hash !== '#/history') {
-        window.history.pushState(null, '', '#/history');
+      setActiveScrollSection('features');
+      if (window.location.hash !== '#/features') {
+        window.history.pushState(null, '', '#/features');
       }
     } else if (cleanPage === 'about') {
       setTimeout(() => {
@@ -120,14 +127,14 @@ export const AppContent: React.FC = () => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 200;
       const scannerEl = document.getElementById('threat-scanner-section');
-      const historyEl = document.getElementById('scan-history-section');
+      const featuresEl = document.getElementById('features-section');
 
       const isBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 150;
 
       if (isBottom) {
         setActiveScrollSection('about');
-      } else if (historyEl && scrollPosition >= historyEl.offsetTop) {
-        setActiveScrollSection('history');
+      } else if (featuresEl && scrollPosition >= featuresEl.offsetTop) {
+        setActiveScrollSection('features');
       } else if (scannerEl && scrollPosition >= scannerEl.offsetTop) {
         setActiveScrollSection('scanner');
       } else {
@@ -164,6 +171,7 @@ export const AppContent: React.FC = () => {
         <Header 
           activeTab={currentPage === 'dashboard' ? activeScrollSection : currentPage} 
           onNavigate={handleNavigate} 
+          onOpenHistory={() => setHistoryModalOpen(true)}
           onGetStarted={() => handleOpenAuth('signup')}
           onOpenSettings={handleOpenSettings}
           user={user}
@@ -197,6 +205,14 @@ export const AppContent: React.FC = () => {
         onClose={handleCloseAuth}
         initialMode="signup"
         onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* Dedicated History Modal */}
+      <HistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        user={user}
+        onOpenAuth={() => handleOpenAuth('login')}
       />
 
       {/* Settings Modal */}

@@ -5,13 +5,14 @@ import { useTheme } from '../lib/themeContext';
 interface HeaderProps {
   activeTab: string;
   onNavigate: (tab: string) => void;
+  onOpenHistory?: () => void;
   onGetStarted?: () => void;
   onOpenSettings?: (tab?: 'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans') => void;
   user?: { name: string; email: string; avatar?: string; provider?: string } | null;
   onSignOut?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStarted, user, onSignOut }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHistory, onGetStarted, user, onSignOut }) => {
   const { theme, setTheme } = useTheme();
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -22,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
 
   const dashRef = useRef<HTMLButtonElement>(null);
   const scanRef = useRef<HTMLButtonElement>(null);
-  const historyRef = useRef<HTMLButtonElement>(null);
+  const featuresRef = useRef<HTMLButtonElement>(null);
   const aboutRef = useRef<HTMLButtonElement>(null);
 
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
@@ -30,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
   useEffect(() => {
     let currentRef: React.RefObject<HTMLButtonElement | null> = dashRef;
     if (activeTab === 'scanner') currentRef = scanRef;
-    else if (activeTab === 'history') currentRef = historyRef;
+    else if (activeTab === 'features') currentRef = featuresRef;
     else if (activeTab === 'about') currentRef = aboutRef;
 
     if (currentRef.current) {
@@ -111,15 +112,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
             Scanner
           </button>
           <button
-            ref={historyRef}
-            onClick={() => onNavigate('history')}
+            ref={featuresRef}
+            onClick={() => onNavigate('features')}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full z-10 transition-colors cursor-pointer ${
-              activeTab === 'history'
+              activeTab === 'features'
                 ? 'text-neutral-900 dark:text-white font-bold'
                 : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
-            History
+            Features
           </button>
           <button
             ref={aboutRef}
@@ -146,11 +147,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
         {/* Right Tools: Top Bar History Button, Theme Button & Profile / Get Started Button */}
         <div className="flex items-center space-x-2.5 sm:space-x-3">
 
-          {/* Top Bar History Button (Right before Theme Button) */}
+          {/* Top Bar History Button (Right before Theme Button) - Opens History Modal */}
           <button
-            onClick={() => onNavigate('history')}
-            className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-100/80 dark:bg-neutral-800/80 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer"
-            title="View Scan History (/history)"
+            onClick={onOpenHistory ? onOpenHistory : () => onNavigate('history')}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-100/80 dark:bg-neutral-800/80 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer active:scale-95"
+            title="Open Scan History Modal"
           >
             <Clock className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
             <span>History</span>
@@ -317,12 +318,12 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
             </button>
 
             <button
-              onClick={() => handleMobileNav('history')}
+              onClick={() => handleMobileNav('features')}
               className={`text-left py-2 px-3 rounded-xl transition ${
-                activeTab === 'history' ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold' : 'text-neutral-600 dark:text-neutral-400'
+                activeTab === 'features' ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold' : 'text-neutral-600 dark:text-neutral-400'
               }`}
             >
-              History
+              Features
             </button>
 
             <button
