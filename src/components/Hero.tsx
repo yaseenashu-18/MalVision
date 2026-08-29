@@ -46,7 +46,7 @@ export const Hero: React.FC<HeroProps> = ({ onScanSelect, onSeeHowItWorks }) => 
   }, []);
 
   return (
-    <section className="w-full max-w-7xl mx-auto px-6 pt-12 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+    <section className="w-full max-w-7xl mx-auto px-6 pt-12 pb-6 sm:pb-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
       {/* Left Column: Headline, Subtitle, CTA */}
       <div className="lg:col-span-6 space-y-8">
         <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-[1.08]">

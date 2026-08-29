@@ -36,16 +36,16 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ isVisible 
   return (
     <div 
       className={`w-full grid transition-all duration-500 ease-in-out overflow-hidden ${
-        isVisible ? 'grid-rows-[1fr] opacity-100 my-6' : 'grid-rows-[0fr] opacity-0 my-0 pointer-events-none'
+        isVisible ? 'grid-rows-[1fr] opacity-100 my-2 sm:my-4' : 'grid-rows-[0fr] opacity-0 my-0 pointer-events-none'
       }`}
     >
       <div className="overflow-hidden min-h-0">
         <section 
           id="how-it-works-section" 
-          className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14 border-t border-b border-neutral-200/60 dark:border-neutral-800/60"
+          className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 border-t border-b border-neutral-200/60 dark:border-neutral-800/60"
         >
           {/* Section Header */}
-          <div className="text-center space-y-2 mb-8 sm:mb-12">
+          <div className="text-center space-y-2 mb-6 sm:mb-8">
             <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
               How It Works
             </span>

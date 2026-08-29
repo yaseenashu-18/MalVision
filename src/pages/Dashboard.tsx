@@ -23,7 +23,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
   };
 
   return (
-    <main className="w-full space-y-12">
+    <main className="w-full space-y-4 sm:space-y-8">
       {/* Hero Section */}
       <Hero
         onScanSelect={(tab) => {
@@ -34,7 +34,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
         onSeeHowItWorks={handleToggleHowItWorks}
       />
 
-      {/* How It Works Section (Smoothly expands inline without sudden page jumps) */}
+      {/* How It Works Section (Tightly aligned below See how it works button) */}
       <HowItWorksSection isVisible={showHowItWorks} />
 
       {/* Threat Scanner Container */}
