@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Clock } from 'lucide-react';
 import { useTheme } from '../lib/themeContext';
 
 interface HeaderProps {
@@ -28,6 +28,21 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
   useEffect(() => {
+    let currentRef: React.RefObject<HTMLButtonElement | null> = dashRef;
+    if (activeTab === 'scanner') currentRef = scanRef;
+    else if (activeTab === 'history') currentRef = historyRef;
+    else if (activeTab === 'about') currentRef = aboutRef;
+
+    if (currentRef.current) {
+      setIndicatorStyle({
+        left: currentRef.current.offsetLeft,
+        width: currentRef.current.offsetWidth,
+      });
+    }
+  }, [activeTab]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (settingsDropdownRef.current && !settingsDropdownRef.current.contains(e.target as Node)) {
         setSettingsDropdownOpen(false);
@@ -40,20 +55,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    let targetRef = dashRef;
-    if (activeTab === 'scanner') targetRef = scanRef;
-    else if (activeTab === 'history') targetRef = historyRef;
-    else if (activeTab === 'about') targetRef = aboutRef;
-
-    if (targetRef && targetRef.current) {
-      setIndicatorStyle({
-        left: targetRef.current.offsetLeft,
-        width: targetRef.current.offsetWidth,
-      });
-    }
-  }, [activeTab]);
-
   const getInitials = (name: string) => {
     const parts = name.trim().split(' ');
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
@@ -61,9 +62,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
   };
 
   const renderThemeIcon = () => {
-    if (theme === 'light') return <Sun className="w-4 h-4 text-neutral-900 dark:text-white stroke-[1.5]" />;
-    if (theme === 'dark') return <Moon className="w-4 h-4 text-neutral-900 dark:text-white stroke-[1.5]" />;
-    return <Monitor className="w-4 h-4 text-neutral-900 dark:text-white stroke-[1.5]" />;
+    if (theme === 'light') return <Sun className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />;
+    if (theme === 'dark') return <Moon className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />;
+    return <Monitor className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />;
   };
 
   const handleMobileNav = (tab: string) => {
@@ -72,69 +73,69 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-md bg-warm-neutral/90 dark:bg-[#121214]/90 border-b border-neutral-200/50 dark:border-neutral-800/50 transition-all duration-200">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-        {/* Brand - MalVision Text Only */}
+    <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-warm-neutral/80 dark:bg-warm-neutral-dark/80 border-b border-neutral-200/60 dark:border-neutral-800/60 transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        {/* Brand Logo & Name */}
         <button 
-          onClick={() => handleMobileNav('home')} 
-          className="text-xl sm:text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white hover:opacity-90 transition cursor-pointer select-none shrink-0"
+          onClick={() => onNavigate('dashboard')}
+          className="flex items-center space-x-2 focus:outline-none transition opacity-90 hover:opacity-100 cursor-pointer"
         >
-          MalVision
+          <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
+            MalVision
+          </span>
         </button>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center space-x-7 text-sm font-semibold relative">
+        {/* Center Sliding Desktop Navigation */}
+        <nav className="hidden md:flex items-center relative bg-neutral-100/80 dark:bg-neutral-800/80 p-1 rounded-full border border-neutral-200/60 dark:border-neutral-700/60">
           <button
             ref={dashRef}
             onClick={() => onNavigate('dashboard')}
-            className={`py-1 transition-colors duration-200 cursor-pointer ${
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full z-10 transition-colors cursor-pointer ${
               activeTab === 'dashboard'
-                ? 'text-neutral-900 dark:text-white'
-                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                ? 'text-neutral-900 dark:text-white font-bold'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
             Dashboard
           </button>
-
           <button
             ref={scanRef}
             onClick={() => onNavigate('scanner')}
-            className={`py-1 transition-colors duration-200 cursor-pointer ${
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full z-10 transition-colors cursor-pointer ${
               activeTab === 'scanner'
-                ? 'text-neutral-900 dark:text-white'
-                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                ? 'text-neutral-900 dark:text-white font-bold'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
             Scanner
           </button>
-
           <button
             ref={historyRef}
             onClick={() => onNavigate('history')}
-            className={`py-1 transition-colors duration-200 cursor-pointer ${
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full z-10 transition-colors cursor-pointer ${
               activeTab === 'history'
-                ? 'text-neutral-900 dark:text-white'
-                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                ? 'text-neutral-900 dark:text-white font-bold'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
             History
           </button>
-
           <button
             ref={aboutRef}
             onClick={() => onNavigate('about')}
-            className={`py-1 transition-colors duration-200 cursor-pointer ${
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full z-10 transition-colors cursor-pointer ${
               activeTab === 'about'
-                ? 'text-neutral-900 dark:text-white'
-                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                ? 'text-neutral-900 dark:text-white font-bold'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
             About
           </button>
 
-          {/* Smooth Sliding Active Indicator Line */}
-          <span
-            className="absolute bottom-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full transition-all duration-300 ease-out pointer-events-none"
+          {/* Active Tab Sliding Pill Indicator */}
+          <div
+            className="absolute top-1 bottom-1 bg-white dark:bg-neutral-900 rounded-full shadow-sm transition-all duration-300 ease-out z-0"
             style={{
               left: `${indicatorStyle.left}px`,
               width: `${indicatorStyle.width}px`,
@@ -142,8 +143,18 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
           />
         </nav>
 
-        {/* Right Tools: Appearance Button & Profile / Get Started Button */}
+        {/* Right Tools: Top Bar History Button, Theme Button & Profile / Get Started Button */}
         <div className="flex items-center space-x-2.5 sm:space-x-3">
+
+          {/* Top Bar History Button (Right before Theme Button) */}
+          <button
+            onClick={() => onNavigate('history')}
+            className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-neutral-700 dark:text-neutral-300 bg-neutral-100/80 dark:bg-neutral-800/80 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer"
+            title="View Scan History (/history)"
+          >
+            <Clock className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400" />
+            <span>History</span>
+          </button>
 
           {/* Desktop Appearance Button Dropdown */}
           <div className="relative hidden md:block" ref={settingsDropdownRef}>

@@ -5,6 +5,7 @@ import { Footer } from './components/Footer';
 import { Dashboard } from './pages/Dashboard';
 import { AuthModal } from './components/AuthModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PrivacyAndTermsModal } from './components/PrivacyAndTermsModal';
 import type { ScannerTabId } from './types';
 
 export const AppContent: React.FC = () => {
@@ -13,9 +14,86 @@ export const AppContent: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
+  
+  // Legal Privacy & Terms modal state
+  const [legalModalOpen, setLegalModalOpen] = useState<boolean>(false);
+  const [legalTab, setLegalTab] = useState<'privacy' | 'terms' | 'cookies'>('privacy');
 
   // Authenticated user state
   const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(null);
+
+  // Smooth navigation handler supporting dashboard, home, history, scanner, privacy, terms
+  const handleNavigate = (page: string) => {
+    const cleanPage = page.replace(/^#\/?/, '').toLowerCase();
+
+    if (cleanPage === 'dashboard' || cleanPage === 'home') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setActiveScrollSection('dashboard');
+      if (window.location.hash !== '#/home') {
+        window.history.pushState(null, '', '#/home');
+      }
+    } else if (cleanPage === 'scanner') {
+      const el = document.getElementById('threat-scanner-section');
+      if (el) {
+        const yOffset = -80;
+        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+      setActiveScrollSection('scanner');
+      if (window.location.hash !== '#/scanner') {
+        window.history.pushState(null, '', '#/scanner');
+      }
+    } else if (cleanPage === 'history') {
+      const el = document.getElementById('scan-history-section');
+      if (el) {
+        const yOffset = -80;
+        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+      setActiveScrollSection('history');
+      if (window.location.hash !== '#/history') {
+        window.history.pushState(null, '', '#/history');
+      }
+    } else if (cleanPage === 'about') {
+      const el = document.querySelector('footer');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+      setActiveScrollSection('about');
+    } else if (cleanPage === 'privacy') {
+      setLegalTab('privacy');
+      setLegalModalOpen(true);
+      if (window.location.hash !== '#/privacy') {
+        window.history.pushState(null, '', '#/privacy');
+      }
+    } else if (cleanPage === 'terms') {
+      setLegalTab('terms');
+      setLegalModalOpen(true);
+      if (window.location.hash !== '#/terms') {
+        window.history.pushState(null, '', '#/terms');
+      }
+    } else if (cleanPage === 'cookies') {
+      setLegalTab('cookies');
+      setLegalModalOpen(true);
+      if (window.location.hash !== '#/cookies') {
+        window.history.pushState(null, '', '#/cookies');
+      }
+    }
+  };
+
+  // URL Hash router listener on load and hash change
+  useEffect(() => {
+    const handleHashRouting = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+      if (hash) {
+        handleNavigate(hash);
+      }
+    };
+
+    handleHashRouting();
+    window.addEventListener('hashchange', handleHashRouting);
+    return () => window.removeEventListener('hashchange', handleHashRouting);
+  }, []);
 
   // Track active section dynamically as user scrolls through the page
   useEffect(() => {
@@ -42,32 +120,6 @@ export const AppContent: React.FC = () => {
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Smooth scroll to sections instead of direct route jumps
-  const handleNavigate = (page: string) => {
-    if (page === 'dashboard' || page === 'home') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (page === 'scanner') {
-      const el = document.getElementById('threat-scanner-section');
-      if (el) {
-        const yOffset = -80; // Offset for sticky glassmorphism header
-        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-    } else if (page === 'history') {
-      const el = document.getElementById('scan-history-section');
-      if (el) {
-        const yOffset = -80;
-        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-    } else if (page === 'about') {
-      const el = document.querySelector('footer');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  };
 
   const handleScannerTabChange = (tab: ScannerTabId) => {
     setScannerTab(tab);
@@ -125,6 +177,13 @@ export const AppContent: React.FC = () => {
         initialTab={settingsTab}
         user={user}
         onSignOut={handleSignOut}
+      />
+
+      {/* Privacy Policy & Terms of Service Modal */}
+      <PrivacyAndTermsModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalTab}
       />
     </div>
   );

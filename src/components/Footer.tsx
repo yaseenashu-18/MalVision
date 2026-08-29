@@ -22,13 +22,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Copyright & Legal links */}
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-8">
           <span>© 2024 MalVision. All rights reserved.</span>
-          <button onClick={() => onNavigate?.('about')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
+          <button onClick={() => onNavigate?.('terms')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
             Terms of Service
           </button>
-          <button onClick={() => onNavigate?.('about')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
+          <button onClick={() => onNavigate?.('privacy')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
             Privacy Policy
           </button>
-          <button onClick={() => onNavigate?.('about')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
+          <button onClick={() => onNavigate?.('cookies')} className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">
             Cookies
           </button>
         </div>
