@@ -150,31 +150,13 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ user, onOpenAuth
       {showHistoryList && (
         <div className="mt-10 pt-8 border-t border-neutral-200 dark:border-neutral-800 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
           
-          {/* Guest Mode Notification Bar */}
-          {!user && (
-            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs">
-              <div className="flex items-center space-x-2">
-                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>Guest Mode Active: Scans are kept temporarily during this session and expire on page reload.</span>
-              </div>
-              {onOpenAuth && (
-                <button
-                  onClick={onOpenAuth}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition cursor-pointer text-xs shrink-0"
-                >
-                  Sign in with Google
-                </button>
-              )}
-            </div>
-          )}
-
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-lg sm:text-xl font-extrabold text-neutral-900 dark:text-white">
-                {user ? `Scan Log (${user.email})` : 'Temporary Guest Scan Log'}
+                {user ? `Scan Log (${user.email})` : 'Scan Log'}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                {user ? 'Displaying your saved threat inspection logs.' : 'Displaying temporary scans for this active session.'}
+                Displaying threat inspection logs.
               </p>
             </div>
 
