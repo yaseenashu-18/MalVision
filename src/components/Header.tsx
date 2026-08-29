@@ -142,17 +142,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
           />
         </nav>
 
-        {/* Right Tools: Database Badge, Appearance Button & Profile / Get Started Button */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Clean Outline Settings Button */}
-          <button
-            onClick={() => onOpenSettings?.('database')}
-            className="p-2 rounded-full text-neutral-700 dark:text-neutral-300 bg-transparent border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer flex items-center justify-center"
-            aria-label="Settings"
-            title="Settings & Database Configuration"
-          >
-            <Settings className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
-          </button>
+        {/* Right Tools: Appearance Button & Profile / Get Started Button */}
+        <div className="flex items-center space-x-2.5 sm:space-x-3">
 
           {/* Desktop Appearance Button Dropdown */}
           <div className="relative hidden md:block" ref={settingsDropdownRef}>
