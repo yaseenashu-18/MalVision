@@ -8,7 +8,6 @@ import { TermsOfService } from './pages/TermsOfService';
 import { CookiePolicy } from './pages/CookiePolicy';
 import { AuthModal } from './components/AuthModal';
 import { HistoryModal } from './components/HistoryModal';
-import { HowItWorksModal } from './components/HowItWorksModal';
 import { SettingsModal } from './components/SettingsModal';
 import type { ScannerTabId } from './types';
 
@@ -18,7 +17,6 @@ export const AppContent: React.FC = () => {
   const [scannerTab, setScannerTab] = useState<ScannerTabId>('file-scan');
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
-  const [howItWorksModalOpen, setHowItWorksModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
 
@@ -193,7 +191,6 @@ export const AppContent: React.FC = () => {
             onScanTabSelect={handleScannerTabChange}
             onNavigate={handleNavigate}
             onOpenAuth={() => handleOpenAuth('login')}
-            onSeeHowItWorks={() => setHowItWorksModalOpen(true)}
             user={user}
           />
         )}
@@ -216,13 +213,6 @@ export const AppContent: React.FC = () => {
         onClose={() => setHistoryModalOpen(false)}
         user={user}
         onOpenAuth={() => handleOpenAuth('login')}
-      />
-
-      {/* See How It Works Modal */}
-      <HowItWorksModal
-        isOpen={howItWorksModalOpen}
-        onClose={() => setHowItWorksModalOpen(false)}
-        onStartScan={() => handleNavigate('scanner')}
       />
 
       {/* Settings Modal */}
