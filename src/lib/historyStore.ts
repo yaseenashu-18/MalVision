@@ -1,14 +1,34 @@
 import type { ScanResultData } from '../types';
 import { syncScanToMongoDB, fetchMongoScanHistory, deleteMongoScan, clearMongoScanHistory } from './mongoService';
 
-// Transient memory storage for guest user sessions (cleared on page reload / session end)
-let transientGuestScans: ScanResultData[] = [];
+const GUEST_SESSION_KEY = 'malvision_guest_session_history';
+
+// Helper to safely access guest session history (persists across page reloads & tab navigation)
+function getGuestSessionScans(): ScanResultData[] {
+  try {
+    const raw = sessionStorage.getItem(GUEST_SESSION_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('Error reading guest session history:', e);
+    return [];
+  }
+}
+
+function saveGuestSessionScans(scans: ScanResultData[]): void {
+  try {
+    sessionStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(scans));
+  } catch (e) {
+    console.error('Error saving guest session history:', e);
+  }
+}
 
 export function getScanHistory(userEmail?: string): ScanResultData[] {
   try {
-    // If not signed in (Guest User), return only transient guest session scans
+    // If not signed in (Guest User), return session-persisted guest scans (survives tab switches & reloads)
     if (!userEmail) {
-      return transientGuestScans;
+      return getGuestSessionScans();
     }
 
     // For Signed-In users, fetch user-specific scans from local storage and MongoDB
@@ -35,7 +55,7 @@ export function getScanHistory(userEmail?: string): ScanResultData[] {
     return Array.from(mergedMap.values());
   } catch (e) {
     console.error('Error reading scan history:', e);
-    return userEmail ? [] : transientGuestScans;
+    return userEmail ? [] : getGuestSessionScans();
   }
 }
 
@@ -46,10 +66,13 @@ export function saveScanToHistory(scan: ScanResultData, userEmail?: string): Sca
       userEmail: userEmail || scan.userEmail
     };
 
-    // If guest user, store in transient session memory only
+    // If guest user, store in sessionStorage (persists through tab switches & page reloads)
     if (!userEmail) {
-      transientGuestScans = [scanWithUser, ...transientGuestScans.filter(item => item.id !== scanWithUser.id)];
-      return transientGuestScans;
+      const currentGuestScans = getGuestSessionScans();
+      const filtered = currentGuestScans.filter(item => item.id !== scanWithUser.id);
+      const updated = [scanWithUser, ...filtered];
+      saveGuestSessionScans(updated);
+      return updated;
     }
 
     // For Signed-In users, store in user-specific key & sync to MongoDB
@@ -77,8 +100,10 @@ export function saveScanToHistory(scan: ScanResultData, userEmail?: string): Sca
 export function removeScanFromHistory(id: string, userEmail?: string): ScanResultData[] {
   try {
     if (!userEmail) {
-      transientGuestScans = transientGuestScans.filter(item => item.id !== id);
-      return transientGuestScans;
+      const currentGuestScans = getGuestSessionScans();
+      const updated = currentGuestScans.filter(item => item.id !== id);
+      saveGuestSessionScans(updated);
+      return updated;
     }
 
     const storageKey = `malvision_scan_history_${userEmail}`;
@@ -97,7 +122,7 @@ export function removeScanFromHistory(id: string, userEmail?: string): ScanResul
 export function clearScanHistory(userEmail?: string): ScanResultData[] {
   try {
     if (!userEmail) {
-      transientGuestScans = [];
+      saveGuestSessionScans([]);
       return [];
     }
 
