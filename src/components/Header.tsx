@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Database } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Settings } from 'lucide-react';
 import { useTheme } from '../lib/themeContext';
 
 interface HeaderProps {
@@ -144,15 +144,14 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStar
 
         {/* Right Tools: Database Badge, Appearance Button & Profile / Get Started Button */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* MongoDB Connection Status Pill */}
+          {/* Clean Outline Settings Button */}
           <button
             onClick={() => onOpenSettings?.('database')}
-            className="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition cursor-pointer"
-            title="MongoDB Atlas Connected: threat-detection"
+            className="p-2 rounded-full text-neutral-700 dark:text-neutral-300 bg-transparent border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer flex items-center justify-center"
+            aria-label="Settings"
+            title="Settings & Database Configuration"
           >
-            <Database className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="truncate max-w-[120px] font-mono text-[11px]">threat-detection</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <Settings className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
           </button>
 
           {/* Desktop Appearance Button Dropdown */}

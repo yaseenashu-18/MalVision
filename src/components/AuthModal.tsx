@@ -16,30 +16,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen && googleBtnRef.current) {
+    if (isOpen) {
       setAuthError(null);
-      renderGoogleSignInButton(
-        googleBtnRef.current,
-        (user) => {
-          setAuthenticatedUser(user);
-          setLoading(true);
-          setTimeout(() => {
-            setLoading(false);
-            onAuthSuccess?.(user);
-            onClose();
-            setAuthenticatedUser(null);
-          }, 800);
-        },
-        (err) => {
-          setAuthError(err);
+      // Small timeout to allow container to mount in DOM
+      const timer = setTimeout(() => {
+        if (googleBtnRef.current) {
+          renderGoogleSignInButton(
+            googleBtnRef.current,
+            (user) => {
+              setAuthenticatedUser(user);
+              setLoading(true);
+              setTimeout(() => {
+                setLoading(false);
+                onAuthSuccess?.(user);
+                onClose();
+                setAuthenticatedUser(null);
+              }, 600);
+            },
+            (err) => {
+              console.warn('GSI button notice:', err);
+            }
+          );
         }
-      );
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleGooglePrompt = async () => {
+  const handleDirectGoogleSignIn = async () => {
     setLoading(true);
     setAuthError(null);
     try {
@@ -50,9 +56,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         onAuthSuccess?.(user);
         onClose();
         setAuthenticatedUser(null);
-      }, 800);
+      }, 600);
     } catch (err: any) {
-      console.warn('Google sign in warning:', err);
+      console.warn('Google sign-in exception:', err);
       setLoading(false);
       setAuthError(err?.message || 'Google sign-in was not completed.');
     }
@@ -76,33 +82,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           <X className="w-4 h-4" />
         </button>
 
-        {/* Modal Header */}
-        <div className="text-center space-y-2 pt-2">
-          {/* Mascot SVG icon */}
-          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 100 100" fill="none" className="stroke-current text-neutral-900 dark:text-white" strokeWidth="6">
-              <rect x="20" y="30" width="60" height="48" rx="16" fill="currentColor" fillOpacity="0.08" />
-              <circle cx="38" cy="50" r="5" fill="currentColor" />
-              <circle cx="62" cy="50" r="5" fill="currentColor" />
-              <path d="M42 63 C 46 67, 54 67, 58 63" strokeLinecap="round" />
-              <path d="M50 30 L50 16" strokeLinecap="round" />
-              <circle cx="50" cy="12" r="4" fill="currentColor" />
-            </svg>
-          </div>
-
+        {/* Clean Modal Header */}
+        <div className="text-center pt-2">
           <h2 className="text-2xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-            Get Started with MalVision
+            Sign In
           </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed px-2">
-            Sign in with your official Google Account to save scan history, sync MongoDB reports, and protect your device.
-          </p>
         </div>
 
         {/* Error Notification Banner */}
         {authError && (
           <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs flex items-center space-x-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{authError}</span>
+            <span className="text-[11px] leading-tight">{authError}</span>
           </div>
         )}
 
@@ -111,35 +102,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
           <div className="py-6 text-center space-y-3 animate-in fade-in duration-200">
             {authenticatedUser ? (
               <>
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
+                <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
                   Welcome, {authenticatedUser.name}!
                 </h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Google OAuth login verified: {authenticatedUser.email}
-                </p>
               </>
             ) : (
               <>
-                <Loader2 className="w-10 h-10 text-neutral-900 dark:text-white animate-spin mx-auto" />
-                <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-                  Authenticating Google Account...
-                </h3>
+                <Loader2 className="w-9 h-9 text-neutral-900 dark:text-white animate-spin mx-auto" />
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Verifying identity with Google accounts...
+                  Signing in with Google...
                 </p>
               </>
             )}
           </div>
         ) : (
-          <div className="space-y-4 pt-2 flex flex-col items-center">
-            {/* Official Google GSI Rendered Button Container */}
-            <div ref={googleBtnRef} className="min-h-[44px] flex items-center justify-center w-full" />
+          <div className="space-y-4 pt-1 flex flex-col items-center">
+            {/* Google Rendered GSI Button Container */}
+            <div ref={googleBtnRef} className="w-full flex items-center justify-center min-h-[44px]" />
 
-            {/* Custom Google OAuth Direct Prompt Fallback Button */}
+            {/* Clean Backup Google Button */}
             <button
-              onClick={handleGooglePrompt}
-              className="w-full py-3 px-4 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold text-xs hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-3 shadow-md active:scale-[0.98]"
+              onClick={handleDirectGoogleSignIn}
+              className="w-full py-3 px-4 rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold text-xs hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-2.5 shadow-sm active:scale-[0.98]"
             >
               <svg className="w-4 h-4 bg-white rounded-full p-0.5 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -147,14 +132,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              <span>Sign in with Google Account</span>
+              <span>Continue with Google</span>
             </button>
-
-            <div className="pt-2 text-center text-[11px] text-neutral-400">
-              By continuing, you agree to MalVision's{' '}
-              <a href="#terms" className="underline hover:text-neutral-600 dark:hover:text-neutral-300">Terms</a> and{' '}
-              <a href="#privacy" className="underline hover:text-neutral-600 dark:hover:text-neutral-300">Privacy Policy</a>.
-            </div>
           </div>
         )}
       </div>
