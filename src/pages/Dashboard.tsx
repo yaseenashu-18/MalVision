@@ -33,12 +33,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
       <ThreatScanner
         activeTab={activeScannerTab}
         onTabChange={onScanTabSelect}
+        user={user}
       />
 
-      {/* Scan History Section (Un-carded) */}
+      {/* Scan History Section (Dynamic per-user & guest session) */}
       <HistorySection user={user} onOpenAuth={onOpenAuth} />
 
-      {/* About Section (Un-carded) */}
+      {/* About Section */}
       <AboutSection />
     </main>
   );

@@ -5,7 +5,11 @@ import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import { ScanResult } from './ScanResult';
 
-export const PdfInspector: React.FC = () => {
+interface PdfInspectorProps {
+  user?: { name: string; email: string } | null;
+}
+
+export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +32,7 @@ export const PdfInspector: React.FC = () => {
     setIsScanning(true);
     try {
       const res = await analyzePdf(file);
-      saveScanToHistory(res);
+      saveScanToHistory(res, user?.email);
       setScanResult(res);
     } finally {
       setIsScanning(false);

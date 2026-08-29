@@ -203,12 +203,16 @@ export function getMongoDatabaseStats(): MongoDatabaseStats {
 /**
  * Fetches scan history records stored in the MongoDB 'scan_history' collection.
  */
-export function fetchMongoScanHistory(): ScanResultData[] {
+export function fetchMongoScanHistory(userEmail?: string): ScanResultData[] {
   try {
     const rawCache = localStorage.getItem(STORAGE_KEY_REMOTE_SCANS);
     if (!rawCache) return [];
-    const parsed = JSON.parse(rawCache);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: ScanResultData[] = JSON.parse(rawCache);
+    if (!Array.isArray(parsed)) return [];
+    if (userEmail) {
+      return parsed.filter((s) => s.userEmail === userEmail || !s.userEmail);
+    }
+    return parsed;
   } catch (e) {
     console.error('Error fetching MongoDB scan history:', e);
     return [];
@@ -218,13 +222,14 @@ export function fetchMongoScanHistory(): ScanResultData[] {
 /**
  * Syncs and persists a new scan result to MongoDB 'scan_history' collection in threat-detection database.
  */
-export function syncScanToMongoDB(scan: ScanResultData): boolean {
+export function syncScanToMongoDB(scan: ScanResultData, userEmail?: string): boolean {
   try {
+    const scanWithUser = { ...scan, userEmail: userEmail || scan.userEmail };
     const currentScans = fetchMongoScanHistory();
-    const filtered = currentScans.filter((s) => s.id !== scan.id);
-    const updated = [scan, ...filtered];
+    const filtered = currentScans.filter((s) => s.id !== scanWithUser.id);
+    const updated = [scanWithUser, ...filtered];
     localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify(updated));
-    console.log(`[MongoDB threat-detection DB] Stored document in 'scan_history' collection:`, scan.id, scan.target);
+    console.log(`[MongoDB threat-detection DB] Stored document in 'scan_history' collection:`, scanWithUser.id, scanWithUser.target, `[User: ${userEmail || 'guest'}]`);
     return true;
   } catch (e) {
     console.error('Failed to sync scan to MongoDB:', e);
@@ -235,10 +240,14 @@ export function syncScanToMongoDB(scan: ScanResultData): boolean {
 /**
  * Deletes a scan record from MongoDB 'scan_history' collection.
  */
-export function deleteMongoScan(id: string): boolean {
+export function deleteMongoScan(id: string, userEmail?: string): boolean {
   try {
     const currentScans = fetchMongoScanHistory();
-    const updated = currentScans.filter((s) => s.id !== id);
+    const updated = currentScans.filter((s) => {
+      if (s.id !== id) return true;
+      if (userEmail && s.userEmail && s.userEmail !== userEmail) return true;
+      return false;
+    });
     localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify(updated));
     return true;
   } catch (e) {
@@ -248,11 +257,17 @@ export function deleteMongoScan(id: string): boolean {
 }
 
 /**
- * Clears MongoDB 'scan_history' collection.
+ * Clears MongoDB 'scan_history' collection for a specific user or globally.
  */
-export function clearMongoScanHistory(): boolean {
+export function clearMongoScanHistory(userEmail?: string): boolean {
   try {
-    localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify([]));
+    if (userEmail) {
+      const currentScans = fetchMongoScanHistory();
+      const updated = currentScans.filter((s) => s.userEmail && s.userEmail !== userEmail);
+      localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify(updated));
+    } else {
+      localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify([]));
+    }
     return true;
   } catch (e) {
     console.error('Error clearing MongoDB scan history:', e);

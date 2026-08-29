@@ -5,7 +5,11 @@ import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import { ScanResult } from './ScanResult';
 
-export const HashAnalysis: React.FC = () => {
+interface HashAnalysisProps {
+  user?: { name: string; email: string } | null;
+}
+
+export const HashAnalysis: React.FC<HashAnalysisProps> = ({ user }) => {
   const [inputHash, setInputHash] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
@@ -19,7 +23,7 @@ export const HashAnalysis: React.FC = () => {
     setIsScanning(true);
     try {
       const res = await analyzeHash(inputHash);
-      saveScanToHistory(res);
+      saveScanToHistory(res, user?.email);
       setScanResult(res);
     } finally {
       setIsScanning(false);

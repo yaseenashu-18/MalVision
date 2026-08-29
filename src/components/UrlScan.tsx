@@ -5,7 +5,11 @@ import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import { ScanResult } from './ScanResult';
 
-export const UrlScan: React.FC = () => {
+interface UrlScanProps {
+  user?: { name: string; email: string } | null;
+}
+
+export const UrlScan: React.FC<UrlScanProps> = ({ user }) => {
   const [inputUrl, setInputUrl] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
@@ -17,7 +21,7 @@ export const UrlScan: React.FC = () => {
     setIsScanning(true);
     try {
       const res = await analyzeUrl(inputUrl);
-      saveScanToHistory(res);
+      saveScanToHistory(res, user?.email);
       setScanResult(res);
     } finally {
       setIsScanning(false);

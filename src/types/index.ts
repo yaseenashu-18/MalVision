@@ -12,6 +12,7 @@ export interface FindingItem {
 
 export interface ScanResultData {
   id: string;
+  userEmail?: string;
   target: string;
   targetType: 'file' | 'pdf' | 'url' | 'hash';
   status: ThreatStatus;

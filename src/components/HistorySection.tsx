@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ShieldCheck, ArrowRight, Lock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronUp } from 'lucide-react';
+import { Clock, ShieldCheck, ArrowRight, Lock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronUp, LogIn, Sparkles } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import mascotImg from '../assets/robot_mascot.png';
 
 interface HistorySectionProps {
-  user?: { name: string; email: string } | null;
+  user?: { name: string; email: string; avatar?: string } | null;
   onOpenAuth?: () => void;
 }
 
-export const HistorySection: React.FC<HistorySectionProps> = () => {
+export const HistorySection: React.FC<HistorySectionProps> = ({ user, onOpenAuth }) => {
   const [showHistoryList, setShowHistoryList] = useState(false);
   const [historyItems, setHistoryItems] = useState<ScanResultData[]>([]);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'Safe' | 'Suspicious' | 'Malicious'>('all');
@@ -17,12 +17,12 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
   const [expandedScanId, setExpandedScanId] = useState<string | null>(null);
 
   const loadHistory = () => {
-    setHistoryItems(getScanHistory());
+    setHistoryItems(getScanHistory(user?.email));
   };
 
   useEffect(() => {
     loadHistory();
-  }, []);
+  }, [user]);
 
   const handleToggleHistory = () => {
     if (!showHistoryList) {
@@ -33,12 +33,12 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
 
   const handleRemoveItem = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = removeScanFromHistory(id);
+    const updated = removeScanFromHistory(id, user?.email);
     setHistoryItems(updated);
   };
 
   const handleClearAll = () => {
-    const updated = clearScanHistory();
+    const updated = clearScanHistory(user?.email);
     setHistoryItems(updated);
   };
 
@@ -60,11 +60,18 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
         <div className="lg:col-span-6 space-y-5 sm:space-y-6 z-10">
           {/* Headline */}
           <div className="space-y-2">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+              <span>{user ? `Account Logged In (${user.email})` : 'Guest Session Active'}</span>
+            </div>
+
             <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-[1.1]">
               Scan smartest,<br />stay protected.
             </h2>
             <p className="text-xs sm:text-base text-neutral-600 dark:text-neutral-400 max-w-lg leading-relaxed pt-1">
-              Detect threats in files, links, documents and more. Save scans, review history, and stay protected always.
+              {user 
+                ? 'Your file scans are encrypted and saved securely under your account in our database.'
+                : 'Detect threats in files, links, and documents. Sign in with Google to save your scans permanently across devices.'}
             </p>
           </div>
 
@@ -75,9 +82,11 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Save & Review</h4>
+                <h4 className="text-xs font-bold text-neutral-900 dark:text-white">
+                  {user ? 'Cloud History Sync' : 'Session Scans'}
+                </h4>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 leading-snug">
-                  All your scans are saved locally. Review and organize them anytime.
+                  {user ? 'Scans sync automatically to your MongoDB database account.' : 'Guest scans expire when session ends.'}
                 </p>
               </div>
             </div>
@@ -87,21 +96,21 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Stay Protected</h4>
+                <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Multi-Engine Protection</h4>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 leading-snug">
-                  Advanced detection engine keeps you safe from the latest threats.
+                  Advanced threat detection keeps your inspections isolated & safe.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Action Bar - Clean & Organized for Mobile & Desktop */}
+          {/* Action Bar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
             <button
               onClick={handleToggleHistory}
               className="inline-flex items-center justify-center space-x-2.5 px-6 py-3.5 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-semibold text-xs sm:text-sm hover:opacity-90 transition cursor-pointer shadow-md active:scale-95 w-full sm:w-auto"
             >
-              <span>{showHistoryList ? 'Hide History' : 'View History'}</span>
+              <span>{showHistoryList ? 'Hide History' : `View History (${historyItems.length})`}</span>
               {showHistoryList ? (
                 <ChevronUp className="w-4 h-4 stroke-[1.5]" />
               ) : (
@@ -109,17 +118,21 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
               )}
             </button>
 
-            <div className="inline-flex items-center justify-center space-x-2 px-4 py-3 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/80 text-xs font-medium text-neutral-600 dark:text-neutral-400 w-full sm:w-auto">
-              <Lock className="w-3.5 h-3.5 text-neutral-500 stroke-[1.5] shrink-0" />
-              <span>Your data stays on your device.</span>
-            </div>
+            {!user && onOpenAuth && (
+              <button
+                onClick={onOpenAuth}
+                className="inline-flex items-center justify-center space-x-2 px-5 py-3.5 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-xs sm:text-sm font-semibold text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-700 transition cursor-pointer shadow-xs w-full sm:w-auto"
+              >
+                <LogIn className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Sign in to Save History</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Right Mascot Illustration - Hidden on Mobile to keep mobile view clean & un-messy */}
+        {/* Right Mascot Illustration */}
         <div className="hidden md:flex lg:col-span-6 justify-center lg:justify-end items-center relative select-none pt-4 lg:pt-0">
           <div className="relative w-64 sm:w-80 md:w-[460px] h-64 sm:h-80 md:h-[460px] flex items-center justify-center select-none">
-            {/* Soft background aura */}
             <div className="absolute inset-0 bg-neutral-100 dark:bg-neutral-800/40 rounded-full blur-3xl opacity-80" />
             <img
               src={mascotImg}
@@ -136,10 +149,33 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
       {/* Expandable Scan History List Panel */}
       {showHistoryList && (
         <div className="mt-10 pt-8 border-t border-neutral-200 dark:border-neutral-800 space-y-6 animate-in fade-in slide-in-from-top-2 duration-200">
+          
+          {/* Guest Mode Notification Bar */}
+          {!user && (
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs">
+              <div className="flex items-center space-x-2">
+                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Guest Mode Active: Scans are kept temporarily during this session and expire on page reload.</span>
+              </div>
+              {onOpenAuth && (
+                <button
+                  onClick={onOpenAuth}
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-600 text-white font-semibold hover:bg-amber-700 transition cursor-pointer text-xs shrink-0"
+                >
+                  Sign in with Google
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg sm:text-xl font-extrabold text-neutral-900 dark:text-white">Scan Log & Records</h3>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">Showing all previously analyzed files, URLs, PDFs, and hashes.</p>
+              <h3 className="text-lg sm:text-xl font-extrabold text-neutral-900 dark:text-white">
+                {user ? `Scan Log (${user.email})` : 'Temporary Guest Scan Log'}
+              </h3>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                {user ? 'Displaying your saved threat inspection logs.' : 'Displaying temporary scans for this active session.'}
+              </p>
             </div>
 
             {historyItems.length > 0 && (
@@ -153,72 +189,91 @@ export const HistorySection: React.FC<HistorySectionProps> = () => {
             )}
           </div>
 
-          {/* Search and Filters - Fully Responsive */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-neutral-400" />
-              <input
-                type="text"
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                placeholder="Search by file name, URL, or hash..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition"
-              />
+          {/* Search and Filters */}
+          {historyItems.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-3 text-neutral-400" />
+                <input
+                  type="text"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Search by file name, URL, or hash..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition"
+                />
+              </div>
+
+              <div className="flex items-center space-x-1.5 text-xs overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                <button
+                  onClick={() => setHistoryFilter('all')}
+                  className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
+                    historyFilter === 'all'
+                      ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
+                      : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200'
+                  }`}
+                >
+                  All ({historyItems.length})
+                </button>
+
+                <button
+                  onClick={() => setHistoryFilter('Safe')}
+                  className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
+                    historyFilter === 'Safe'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                  }`}
+                >
+                  Safe
+                </button>
+
+                <button
+                  onClick={() => setHistoryFilter('Suspicious')}
+                  className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
+                    historyFilter === 'Suspicious'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+                  }`}
+                >
+                  Suspicious
+                </button>
+
+                <button
+                  onClick={() => setHistoryFilter('Malicious')}
+                  className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
+                    historyFilter === 'Malicious'
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 hover:bg-rose-100'
+                  }`}
+                >
+                  Malicious
+                </button>
+              </div>
             </div>
-
-            <div className="flex items-center space-x-1.5 text-xs overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              <button
-                onClick={() => setHistoryFilter('all')}
-                className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
-                  historyFilter === 'all'
-                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200'
-                }`}
-              >
-                All ({historyItems.length})
-              </button>
-
-              <button
-                onClick={() => setHistoryFilter('Safe')}
-                className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
-                  historyFilter === 'Safe'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
-                }`}
-              >
-                Safe
-              </button>
-
-              <button
-                onClick={() => setHistoryFilter('Suspicious')}
-                className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
-                  historyFilter === 'Suspicious'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
-                }`}
-              >
-                Suspicious
-              </button>
-
-              <button
-                onClick={() => setHistoryFilter('Malicious')}
-                className={`px-3 py-2 rounded-xl font-semibold transition cursor-pointer whitespace-nowrap ${
-                  historyFilter === 'Malicious'
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 hover:bg-rose-100'
-                }`}
-              >
-                Malicious
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* History Cards */}
           {filteredHistory.length === 0 ? (
-            <div className="p-8 sm:p-10 text-center border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl space-y-2 bg-neutral-50/50 dark:bg-neutral-900/30">
-              <Clock className="w-8 h-8 text-neutral-400 mx-auto" />
-              <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">No scan history recorded</p>
-              <p className="text-[11px] text-neutral-400">Perform a scan using the Threat Scanner above to see logs here.</p>
+            <div className="p-8 sm:p-12 text-center border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl space-y-3 bg-neutral-50/50 dark:bg-neutral-900/30">
+              <Clock className="w-10 h-10 text-neutral-400 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
+                  {user ? 'No scan history recorded yet' : 'No guest scans performed in this session'}
+                </p>
+                <p className="text-[11px] text-neutral-500 max-w-sm mx-auto">
+                  {user 
+                    ? 'Use the Threat Scanner above to inspect files, URLs, or hashes. Your scan results will appear here automatically.'
+                    : 'Perform a scan above or sign in with Google to save scans permanently.'}
+                </p>
+              </div>
+              {!user && onOpenAuth && (
+                <button
+                  onClick={onOpenAuth}
+                  className="mt-2 inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold hover:opacity-90 transition cursor-pointer shadow-sm"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign in with Google</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

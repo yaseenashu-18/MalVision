@@ -5,7 +5,11 @@ import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import { ScanResult } from './ScanResult';
 
-export const FileScan: React.FC = () => {
+interface FileScanProps {
+  user?: { name: string; email: string } | null;
+}
+
+export const FileScan: React.FC<FileScanProps> = ({ user }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +32,7 @@ export const FileScan: React.FC = () => {
     setIsScanning(true);
     try {
       const res = await analyzeFile(file);
-      saveScanToHistory(res);
+      saveScanToHistory(res, user?.email);
       setScanResult(res);
     } finally {
       setIsScanning(false);
@@ -60,7 +64,6 @@ export const FileScan: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* File Upload Line Icon in Circle matching Image 2 */}
           <div className="w-16 h-16 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-200 shadow-xs">
             <div className="relative">
               <FileUp className="w-8 h-8 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
