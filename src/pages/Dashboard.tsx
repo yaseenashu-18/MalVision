@@ -19,16 +19,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const handleToggleHowItWorks = () => {
-    setShowHowItWorks((prev) => {
-      const nextState = !prev;
-      if (nextState) {
-        setTimeout(() => {
-          const el = document.getElementById('how-it-works-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }, 50);
-      }
-      return nextState;
-    });
+    setShowHowItWorks((prev) => !prev);
   };
 
   return (
@@ -43,7 +34,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
         onSeeHowItWorks={handleToggleHowItWorks}
       />
 
-      {/* How It Works Section (Only shows when clicking "See how it works" button) */}
+      {/* How It Works Section (Smoothly expands inline without sudden page jumps) */}
       <HowItWorksSection isVisible={showHowItWorks} />
 
       {/* Threat Scanner Container */}
