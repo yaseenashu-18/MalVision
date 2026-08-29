@@ -5,7 +5,7 @@ import { FlowingMesh } from './FlowingMesh';
 export const AboutSection: React.FC = () => {
   return (
     <section id="about-section" className="w-full relative overflow-hidden py-20">
-      {/* Full-Bleed Edge-to-Edge Flowing Lines Mesh Background - Hidden on mobile to keep mobile view clean & un-messy */}
+      {/* Full-Bleed Edge-to-Edge Flowing Lines Mesh Background */}
       <div className="hidden md:block">
         <FlowingMesh />
       </div>
@@ -22,21 +22,21 @@ export const AboutSection: React.FC = () => {
             <div className="space-y-4">
               <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-[1.08]">
                 Built for privacy.<br />
-                Made for protection.
+                Scan smartest, stay protected.
               </h2>
               <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xl">
-                MalVision is a fast, privacy-first threat scanner that helps you detect malicious files, links, documents and more in seconds. No accounts. No data collection. Just security you can trust.
+                MalVision is a fast, privacy-first threat scanner that helps you detect malicious files, links, documents, PDFs, images, and hashes in seconds. Zero data selling. Total security you can trust.
               </p>
             </div>
 
-            {/* 4 Feature Items Grid with Simple Single Line Icons directly above text */}
+            {/* 4 Feature Items Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-2">
               {/* 1. Privacy First */}
               <div className="space-y-2.5">
                 <Shield className="w-6 h-6 text-neutral-900 dark:text-white stroke-[1.5]" />
                 <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Privacy First</h4>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                  Your data stays on your device.
+                  Your data stays protected on your device.
                 </p>
               </div>
 
@@ -45,7 +45,7 @@ export const AboutSection: React.FC = () => {
                 <Zap className="w-6 h-6 text-neutral-900 dark:text-white stroke-[1.5]" />
                 <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Lightning Fast</h4>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                  Scan in seconds, get instant results.
+                  Scan in seconds, get instant risk feedback.
                 </p>
               </div>
 
@@ -54,7 +54,7 @@ export const AboutSection: React.FC = () => {
                 <Target className="w-6 h-6 text-neutral-900 dark:text-white stroke-[1.5]" />
                 <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Powerful Detection</h4>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                  Advanced engine to find latest threats.
+                  Advanced engines detect emerging threats.
                 </p>
               </div>
 
@@ -63,7 +63,7 @@ export const AboutSection: React.FC = () => {
                 <Lock className="w-6 h-6 text-neutral-900 dark:text-white stroke-[1.5]" />
                 <h4 className="text-xs font-bold text-neutral-900 dark:text-white">You're in Control</h4>
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                  No tracking. No cloud. Just you and your data.
+                  No tracking. Encrypted database cloud sync.
                 </p>
               </div>
             </div>

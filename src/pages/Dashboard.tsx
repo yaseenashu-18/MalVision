@@ -10,10 +10,11 @@ interface DashboardProps {
   onScanTabSelect: (tab: ScannerTabId) => void;
   onNavigate: (page: string) => void;
   onOpenAuth?: () => void;
+  onSeeHowItWorks?: () => void;
   user?: { name: string; email: string } | null;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-scan', onScanTabSelect, user }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-scan', onScanTabSelect, user, onSeeHowItWorks }) => {
   return (
     <main className="w-full space-y-12">
       {/* Hero Section */}
@@ -24,8 +25,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
           if (el) el.scrollIntoView({ behavior: 'smooth' });
         }}
         onSeeHowItWorks={() => {
-          const el = document.getElementById('threat-scanner-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
+          if (onSeeHowItWorks) {
+            onSeeHowItWorks();
+          } else {
+            const el = document.getElementById('threat-scanner-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }
         }}
       />
 
@@ -36,8 +41,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
         user={user}
       />
 
-      {/* Features & Security Protection Section */}
-      <FeaturesSection />
+      {/* Features & Capability Cards Section */}
+      <FeaturesSection onScanSelect={onScanTabSelect} />
 
       {/* About Section */}
       <AboutSection />

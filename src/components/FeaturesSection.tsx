@@ -1,89 +1,115 @@
 import React from 'react';
-import { ShieldCheck, Cpu, Database, Lock, Eye, Zap } from 'lucide-react';
-import mascotImg from '../assets/robot_mascot.png';
+import { FileText, FileStack, FileSpreadsheet, Image as ImageIcon, Link as LinkIcon, Hash } from 'lucide-react';
+import type { ScannerTabId } from '../types';
 
-export const FeaturesSection: React.FC = () => {
+interface FeaturesSectionProps {
+  onScanSelect?: (tab: ScannerTabId) => void;
+}
+
+export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onScanSelect }) => {
+  const featureCards = [
+    {
+      id: 'files',
+      title: 'Files',
+      description: 'Scan any file format for hidden malware and suspicious payloads.',
+      icon: FileText,
+      tab: 'file-scan' as ScannerTabId,
+      badge: 'File Inspection'
+    },
+    {
+      id: 'documents',
+      title: 'Documents',
+      description: 'Scan DOC, DOCX, PPT, TXT and office formats for embedded macros.',
+      icon: FileStack,
+      tab: 'file-scan' as ScannerTabId,
+      badge: 'Office & Text'
+    },
+    {
+      id: 'pdfs',
+      title: 'PDFs',
+      description: 'Inspect PDFs for hidden JavaScript triggers and dangerous streams.',
+      icon: FileSpreadsheet,
+      tab: 'pdf-inspector' as ScannerTabId,
+      badge: 'PDF Stream Analysis'
+    },
+    {
+      id: 'images',
+      title: 'Images',
+      description: 'Scan images like JPG, PNG, and JPEG for steganography risks.',
+      icon: ImageIcon,
+      tab: 'file-scan' as ScannerTabId,
+      badge: 'Media Security'
+    },
+    {
+      id: 'links',
+      title: 'Links',
+      description: 'Check URLs and website links for phishing and malicious redirects.',
+      icon: LinkIcon,
+      tab: 'url-scan' as ScannerTabId,
+      badge: 'URL Reputation'
+    },
+    {
+      id: 'hashes',
+      title: 'Hashes',
+      description: 'Analyze SHA-256 and MD5 hashes with cloud threat intelligence.',
+      icon: Hash,
+      tab: 'hash-analysis' as ScannerTabId,
+      badge: 'Signature Lookup'
+    }
+  ];
+
   return (
-    <section id="features-section" className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Details */}
-        <div className="lg:col-span-6 space-y-5 sm:space-y-6 z-10">
-          {/* Headline */}
-          <div className="space-y-2">
-            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-[1.1]">
-              Scan smartest,<br />stay protected.
-            </h2>
-            <p className="text-xs sm:text-base text-neutral-600 dark:text-neutral-400 max-w-lg leading-relaxed pt-1">
-              Detect threats in files, links, documents, and hashes using advanced security engines. Isolated, fast, and multi-layered protection.
-            </p>
-          </div>
+    <section id="features-section" className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      {/* Title & Subtitle */}
+      <div className="text-center space-y-3 mb-10 sm:mb-14">
+        <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
+          Features & Capabilities
+        </h2>
+        <p className="text-sm sm:text-base text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto">
+          Comprehensive multi-engine threat detection tailored for files, documents, PDFs, images, links, and cryptographic hashes.
+        </p>
+      </div>
 
-          {/* Feature Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 pt-1">
-            <div className="p-4 rounded-2xl border border-neutral-200/70 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/60 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shadow-xs">
-                <Cpu className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[1.5]" />
+      {/* 6 Feature Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        {featureCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div
+              key={card.id}
+              onClick={() => {
+                onScanSelect?.(card.tab);
+                const el = document.getElementById('threat-scanner-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-[#18181B] hover:border-neutral-400 dark:hover:border-neutral-700 transition duration-200 cursor-pointer shadow-xs flex flex-col justify-between space-y-4 group hover:shadow-md"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <Icon className="w-6 h-6 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
+                    {card.badge}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-bold text-neutral-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                    {card.title}
+                  </h3>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                    {card.description}
+                  </p>
+                </div>
               </div>
-              <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Multi-Engine Scanner</h4>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                Analyze files, PDFs, URLs, images, and SHA-256 hashes for embedded exploit payloads.
-              </p>
-            </div>
 
-            <div className="p-4 rounded-2xl border border-neutral-200/70 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/60 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shadow-xs">
-                <Eye className="w-5 h-5 text-blue-600 dark:text-blue-400 stroke-[1.5]" />
+              <div className="pt-2 flex items-center text-xs font-semibold text-neutral-800 dark:text-neutral-200 group-hover:translate-x-1 transition-transform duration-200">
+                <span>Start Scanning →</span>
               </div>
-              <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Isolated Sandbox Preview</h4>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                Inspect document text and structure safely in a read-only execution sandbox.
-              </p>
             </div>
-
-            <div className="p-4 rounded-2xl border border-neutral-200/70 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/60 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shadow-xs">
-                <Database className="w-5 h-5 text-amber-600 dark:text-amber-400 stroke-[1.5]" />
-              </div>
-              <h4 className="text-xs font-bold text-neutral-900 dark:text-white">MongoDB Cloud Sync</h4>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                Scans sync to your threat-detection database cluster for cross-device access.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl border border-neutral-200/70 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/60 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shadow-xs">
-                <ShieldCheck className="w-5 h-5 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
-              </div>
-              <h4 className="text-xs font-bold text-neutral-900 dark:text-white">Privacy Guarantee</h4>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
-                Your private document contents are parsed locally and never sold to third parties.
-              </p>
-            </div>
-          </div>
-
-          {/* Action Bar */}
-          <div className="pt-2">
-            <div className="inline-flex items-center space-x-2 px-4 py-3 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/80 text-xs font-medium text-neutral-600 dark:text-neutral-400">
-              <Lock className="w-3.5 h-3.5 text-neutral-500 stroke-[1.5] shrink-0" />
-              <span>TLS 1.3 Enterprise Encryption Active</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Mascot Illustration */}
-        <div className="hidden md:flex lg:col-span-6 justify-center lg:justify-end items-center relative select-none pt-4 lg:pt-0">
-          <div className="relative w-64 sm:w-80 md:w-[460px] h-64 sm:h-80 md:h-[460px] flex items-center justify-center select-none">
-            <div className="absolute inset-0 bg-neutral-100 dark:bg-neutral-800/40 rounded-full blur-3xl opacity-80" />
-            <img
-              src={mascotImg}
-              alt="MalVision Robot Security Mascot"
-              draggable={false}
-              onContextMenu={(e) => e.preventDefault()}
-              className="w-full h-full object-contain relative z-10 filter drop-shadow-2xl pointer-events-none select-none"
-              style={{ userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
-            />
-          </div>
-        </div>
+          );
+        })}
       </div>
     </section>
   );
