@@ -54,7 +54,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
             Google Authentication Scope
           </h2>
           <p>
-            When you sign in using Google OAuth, MalVision accesses basic profile credentials—specifically your verified email address, display name, and avatar image—solely to personalize your threat dashboard and sync your scan history across devices. We never request or access your private Google Drive files, Gmail messages, or contacts.
+            MalVision requests only basic Google account info: email address, full name, and profile picture. This is used solely to authenticate your login and save your scan history securely.
           </p>
         </div>
 
