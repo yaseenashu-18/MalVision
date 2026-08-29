@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Settings } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useTheme } from '../lib/themeContext';
 
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
   onSignOut?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStarted, onOpenSettings, user, onSignOut }) => {
+export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onGetStarted, user, onSignOut }) => {
   const { theme, setTheme } = useTheme();
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
