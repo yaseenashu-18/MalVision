@@ -32,23 +32,23 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </a>
         </div>
 
-        {/* Right Legal Buttons: Stacked/aligned cleanly on mobile & desktop */}
-        <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 sm:gap-6 text-xs font-medium">
+        {/* Right Legal Buttons: Text highlight ONLY - No background box */}
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 sm:gap-6 text-xs font-medium">
           <button 
             onClick={() => onNavigate?.('terms')} 
-            className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer"
           >
             Terms of Service
           </button>
           <button 
             onClick={() => onNavigate?.('privacy')} 
-            className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer"
           >
             Privacy Policy
           </button>
           <button 
             onClick={() => onNavigate?.('cookies')} 
-            className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer"
           >
             Cookies
           </button>
