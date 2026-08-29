@@ -21,9 +21,28 @@ export const AppContent: React.FC = () => {
   // Authenticated user state
   const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(null);
 
-  // Smooth navigation handler supporting standalone pages (/privacy, /terms, /cookies) & scroll targets
+  const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
+    setAuthModalOpen(true);
+    if (window.location.hash !== `#/${mode}`) {
+      window.history.pushState(null, '', `#/${mode}`);
+    }
+  };
+
+  const handleCloseAuth = () => {
+    setAuthModalOpen(false);
+    if (window.location.hash === '#/login' || window.location.hash === '#/signup') {
+      window.history.pushState(null, '', '#/home');
+    }
+  };
+
+  // Smooth navigation handler supporting standalone pages (/privacy, /terms, /cookies, /login, /signup) & scroll targets
   const handleNavigate = (page: string) => {
     const cleanPage = page.replace(/^#\/?/, '').toLowerCase();
+
+    if (cleanPage === 'login' || cleanPage === 'signup') {
+      handleOpenAuth(cleanPage as 'login' | 'signup');
+      return;
+    }
 
     if (cleanPage === 'privacy' || cleanPage === 'terms' || cleanPage === 'cookies') {
       setCurrentPage(cleanPage);
@@ -145,7 +164,7 @@ export const AppContent: React.FC = () => {
         <Header 
           activeTab={currentPage === 'dashboard' ? activeScrollSection : currentPage} 
           onNavigate={handleNavigate} 
-          onGetStarted={() => setAuthModalOpen(true)}
+          onGetStarted={() => handleOpenAuth('signup')}
           onOpenSettings={handleOpenSettings}
           user={user}
           onSignOut={handleSignOut}
@@ -163,7 +182,7 @@ export const AppContent: React.FC = () => {
             activeScannerTab={scannerTab}
             onScanTabSelect={handleScannerTabChange}
             onNavigate={handleNavigate}
-            onOpenAuth={() => setAuthModalOpen(true)}
+            onOpenAuth={() => handleOpenAuth('login')}
             user={user}
           />
         )}
@@ -175,7 +194,7 @@ export const AppContent: React.FC = () => {
       {/* Login / Create Account Modal */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={handleCloseAuth}
         initialMode="signup"
         onAuthSuccess={handleAuthSuccess}
       />

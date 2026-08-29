@@ -63,15 +63,6 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onNavigate }) =>
 
         <div className="space-y-3">
           <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
-            Intellectual Property & Maintainer Notice
-          </h2>
-          <p>
-            All source code, threat scoring algorithms, user interface designs, and branding assets associated with MalVision are the intellectual property of MalVision maintainer <a href="https://github.com/yaseenashu-18" target="_blank" rel="noreferrer" className="font-sans not-italic font-bold underline text-neutral-900 dark:text-white hover:opacity-80">yaseenashu-18</a>.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="font-sans not-italic text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
             Limitation of Liability
           </h2>
           <p>
