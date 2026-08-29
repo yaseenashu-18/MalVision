@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, FileStack, FileSpreadsheet, Image as ImageIcon, Link as LinkIcon, Hash, Eye, Database } from 'lucide-react';
+import { FileText, FileStack, FileSpreadsheet, Image as ImageIcon, Link as LinkIcon, Hash, Eye, ShieldCheck } from 'lucide-react';
 import type { ScannerTabId } from '../types';
 
 interface FeaturesSectionProps {
@@ -58,10 +58,10 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onScanSelect }
       tab: 'preview-file' as ScannerTabId
     },
     {
-      id: 'database',
-      title: 'Database Cloud Sync',
-      description: 'Sync your threat inspection records securely to MongoDB Atlas cluster.',
-      icon: Database,
+      id: 'pre-execution',
+      title: 'Pre-Execution Protection',
+      description: 'Inspect binary macros, executable payloads, and links BEFORE opening or running them on your system.',
+      icon: ShieldCheck,
       tab: 'file-scan' as ScannerTabId
     }
   ];
@@ -78,7 +78,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onScanSelect }
         </p>
       </div>
 
-      {/* 8 Feature Cards Grid - Clean, No top-right badge text */}
+      {/* 8 Feature Cards Grid - Clean, Static Layout, No Pop Effects & No Green Accents */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
         {featureCards.map((card) => {
           const Icon = card.icon;
@@ -90,15 +90,15 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onScanSelect }
                 const el = document.getElementById('threat-scanner-section');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-[#18181B] hover:border-neutral-400 dark:hover:border-neutral-700 transition duration-200 cursor-pointer shadow-xs flex flex-col justify-between space-y-4 group hover:shadow-md"
+              className="p-6 rounded-3xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-[#18181B] hover:border-neutral-400 dark:hover:border-neutral-700 transition duration-200 cursor-pointer shadow-xs flex flex-col justify-between space-y-4"
             >
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                <div className="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 flex items-center justify-center">
                   <Icon className="w-6 h-6 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="text-lg font-bold text-neutral-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                  <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
                     {card.title}
                   </h3>
                   <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
@@ -107,7 +107,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onScanSelect }
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center text-xs font-semibold text-neutral-800 dark:text-neutral-200 group-hover:translate-x-1 transition-transform duration-200">
+              <div className="pt-2 flex items-center text-xs font-semibold text-neutral-700 dark:text-neutral-300">
                 <span>Start Scanning →</span>
               </div>
             </div>
