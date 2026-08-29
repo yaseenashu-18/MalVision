@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Lock, ArrowLeft, ShieldCheck, CheckCircle2, Sliders, Database } from 'lucide-react';
+import { Lock, ArrowLeft, ShieldCheck, CheckCircle2, Sliders } from 'lucide-react';
 
 interface CookiePolicyProps {
   onNavigate: (page: string) => void;

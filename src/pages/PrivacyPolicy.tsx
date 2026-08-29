@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ShieldCheck, ArrowLeft, Lock, Database, Key, Server, Eye, FileText, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Lock, Database, Key, Server, Eye, CheckCircle2 } from 'lucide-react';
 
 interface PrivacyPolicyProps {
   onNavigate: (page: string) => void;
