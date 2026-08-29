@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ShieldCheck, ArrowRight, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronUp, LogIn, Sparkles } from 'lucide-react';
+import { Clock, ShieldCheck, ArrowRight, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronUp, LogIn } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import mascotImg from '../assets/robot_mascot.png';
@@ -60,11 +60,6 @@ export const HistorySection: React.FC<HistorySectionProps> = ({ user, onOpenAuth
         <div className="lg:col-span-6 space-y-5 sm:space-y-6 z-10">
           {/* Headline */}
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-              <span>{user ? `Account Logged In (${user.email})` : 'Guest Session Active'}</span>
-            </div>
-
             <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-white leading-[1.1]">
               Scan smartest,<br />stay protected.
             </h2>
