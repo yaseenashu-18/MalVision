@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
+import malvisionLogo from '../assets/MalVision_glossy_black_logo_2K_202608300636.jpeg';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -11,8 +12,8 @@ interface HistoryModalProps {
 }
 
 /**
- * Native PDF Generator (100% Guaranteed Non-Blank Render with Paper Styling)
- * Uses light grey paper background (#f4f4f5), dark text (#09090b), glossy MalVision logo, and strict red/green status colors.
+ * Native PDF Generator featuring the official glossy 3D black MalVision logo
+ * Uses light grey paper background (#f4f4f5), dark text (#09090b), and strict red/green status colors.
  */
 export function downloadMalVisionPdfReport(item: ScanResultData) {
   const isSafe = item.status === 'Safe';
@@ -48,20 +49,11 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             padding-bottom: 20px;
             margin-bottom: 28px;
           }
-          .glass-logo {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.85) !important;
-            border: 1px solid rgba(0, 0, 0, 0.12) !important;
-            padding: 8px 20px;
-            border-radius: 14px;
-            font-size: 24px;
-            font-weight: 800;
-            color: #09090b !important;
-            letter-spacing: -0.5px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+          .logo-img {
+            height: 38px;
+            width: auto;
+            object-fit: contain;
           }
-          .glass-logo span { color: #dc2626 !important; }
           .report-title {
             font-size: 11px;
             text-transform: uppercase;
@@ -114,7 +106,7 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
       <body>
         <div class="header">
           <div>
-            <div class="glass-logo">Mal<span>Vision</span></div>
+            <img src="${malvisionLogo}" alt="MalVision Logo" class="logo-img" />
             <div class="report-title">Threat Analysis Report</div>
           </div>
           <div class="status-tag">

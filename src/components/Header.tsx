@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Clock } from 'lucide-react';
 import { useTheme } from '../lib/themeContext';
+import malvisionLogo from '../assets/MalVision_glossy_black_logo_2K_202608300636.jpeg';
 
 interface HeaderProps {
   activeTab: string;
@@ -77,14 +78,16 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-warm-neutral/80 dark:bg-warm-neutral-dark/80 border-b border-neutral-200/60 dark:border-neutral-800/60 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo & Name */}
+        {/* Brand Logo & Name using the official glossy 3D black logo */}
         <button 
           onClick={() => onNavigate('dashboard')}
-          className="flex items-center space-x-2 focus:outline-none transition opacity-90 hover:opacity-100 cursor-pointer"
+          className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group"
         >
-          <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
-            MalVision
-          </span>
+          <img 
+            src={malvisionLogo} 
+            alt="MalVision Logo" 
+            className="h-7 sm:h-9 w-auto object-contain dark:invert transition-transform group-hover:scale-105" 
+          />
         </button>
 
         {/* Center Sliding Desktop Navigation */}
