@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Clock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Clock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 
@@ -12,14 +12,13 @@ interface HistoryModalProps {
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, user, onOpenAuth }) => {
   const [historyItems, setHistoryItems] = useState<ScanResultData[]>([]);
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'Safe' | 'Suspicious' | 'Malicious'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'Safe' | 'Malicious'>('all');
   const [historySearch, setHistorySearch] = useState('');
   const [expandedScanId, setExpandedScanId] = useState<string | null>(null);
 
-  // Filter button refs for smooth sliding tab indicator
+  // Filter button refs for smooth sliding tab indicator (All, Safe, Malicious)
   const allRef = useRef<HTMLButtonElement>(null);
   const safeRef = useRef<HTMLButtonElement>(null);
-  const suspiciousRef = useRef<HTMLButtonElement>(null);
   const maliciousRef = useRef<HTMLButtonElement>(null);
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
@@ -38,7 +37,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
     if (!isOpen) return;
     let targetRef = allRef;
     if (historyFilter === 'Safe') targetRef = safeRef;
-    else if (historyFilter === 'Suspicious') targetRef = suspiciousRef;
     else if (historyFilter === 'Malicious') targetRef = maliciousRef;
 
     if (targetRef.current) {
@@ -62,6 +60,17 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
     setHistoryItems(updated);
   };
 
+  const handleDownloadItemReport = (item: ScanResultData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(item, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `malvision_report_${item.id || 'scan'}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   const filteredHistory = historyItems.filter((item) => {
     if (!item || typeof item.target !== 'string') return false;
     const targetStr = (item.target || '').toLowerCase();
@@ -78,7 +87,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
       className="fixed inset-0 z-50 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-200 flex justify-end p-0"
       onClick={onClose}
     >
-      {/* Floating Right Panel (Fully framed, top-4 & bottom-4 to prevent cut-offs) */}
+      {/* TapType Style Floating Right Panel (All, Safe, Malicious Tabs) */}
       <div 
         className="fixed top-4 bottom-4 right-3 sm:right-5 w-[calc(100%-24px)] sm:w-[400px] md:w-[420px] max-h-[calc(100vh-32px)] bg-white dark:bg-[#18181D] border border-neutral-200/90 dark:border-neutral-800/90 rounded-[28px] shadow-2xl flex flex-col justify-between relative transform animate-in slide-in-from-right duration-300 p-5 overflow-hidden z-50 box-border"
         onClick={(e) => e.stopPropagation()}
@@ -133,8 +142,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             )}
           </div>
 
-          {/* Smooth Sliding Filter Bar (All, Safe, Suspicious, Malicious) */}
-          <div className="relative flex items-center space-x-3 text-xs pt-1 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2.5 overflow-x-auto scrollbar-none">
+          {/* Smooth Sliding Filter Bar (All, Safe, Malicious - Suspicious Removed) */}
+          <div className="relative flex items-center space-x-4 text-xs pt-1 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2.5 overflow-x-auto scrollbar-none">
             <button
               ref={allRef}
               onClick={() => setHistoryFilter('all')}
@@ -160,18 +169,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             </button>
 
             <button
-              ref={suspiciousRef}
-              onClick={() => setHistoryFilter('Suspicious')}
-              className={`transition cursor-pointer relative z-10 ${
-                historyFilter === 'Suspicious'
-                  ? 'text-amber-600 dark:text-amber-400 font-bold'
-                  : 'text-neutral-500 dark:text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 font-medium'
-              }`}
-            >
-              Suspicious
-            </button>
-
-            <button
               ref={maliciousRef}
               onClick={() => setHistoryFilter('Malicious')}
               className={`transition cursor-pointer relative z-10 ${
@@ -188,8 +185,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
               className={`absolute bottom-0 h-0.5 rounded-full transition-all duration-300 ease-out z-0 ${
                 historyFilter === 'Safe'
                   ? 'bg-emerald-500'
-                  : historyFilter === 'Suspicious'
-                  ? 'bg-amber-500'
                   : historyFilter === 'Malicious'
                   ? 'bg-rose-500'
                   : 'bg-neutral-900 dark:bg-white'
@@ -202,7 +197,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
           </div>
         </div>
 
-        {/* Scrollable Records List (Fits perfectly within framed viewport) */}
+        {/* Scrollable Records List */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 pt-2 min-h-0">
           {filteredHistory.length === 0 ? (
             <div className="p-6 text-center border border-dashed border-neutral-200 dark:border-neutral-800/80 rounded-2xl space-y-2.5 bg-neutral-50/50 dark:bg-neutral-900/30 my-2">
@@ -241,7 +236,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
                         {item.status === 'Safe' ? (
                           <SafeIcon className="w-3.5 h-3.5 text-emerald-500" />
                         ) : (
-                          <ShieldAlert className={`w-3.5 h-3.5 ${item.status === 'Malicious' ? 'text-rose-500' : 'text-amber-500'}`} />
+                          <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
                         )}
                       </div>
                       <div className="truncate min-w-0 flex-1">
@@ -270,18 +265,25 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
                     </div>
 
                     {/* Status Badge & Actions */}
-                    <div className="flex items-center space-x-1.5 shrink-0">
+                    <div className="flex items-center space-x-1 shrink-0">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           item.status === 'Safe'
                             ? 'text-emerald-600 dark:text-emerald-400'
-                            : item.status === 'Suspicious'
-                            ? 'text-amber-600 dark:text-amber-400'
                             : 'text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {item.status}
                       </span>
+
+                      {/* Download Option Button for Every History Item */}
+                      <button
+                        onClick={(e) => handleDownloadItemReport(item, e)}
+                        className="p-1 rounded-lg text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 transition cursor-pointer"
+                        title="Download Report (.json)"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
 
                       <button
                         onClick={(e) => handleRemoveItem(item.id, e)}
