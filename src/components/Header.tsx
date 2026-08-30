@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Clock } from 'lucide-react';
 import { useTheme } from '../lib/themeContext';
-import malvisionLogoSvg from '../assets/MalVision_glossy_black_logo_2K_202608300636.svg';
+import malvisionLogoSvg from '../assets/MalVision_glossy_black_logo_2K_2026083006316.svg';
 
 interface HeaderProps {
   activeTab: string;
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-warm-neutral/80 dark:bg-warm-neutral-dark/80 border-b border-neutral-200/60 dark:border-neutral-800/60 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Vector SVG Logo (Big, Crisp & Transparent Background) */}
+        {/* Brand Logo using MalVision_glossy_black_logo_2K_2026083006316.svg */}
         <button 
           onClick={() => onNavigate('dashboard')}
           className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1"
@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
           <img 
             src={malvisionLogoSvg} 
             alt="MalVision Logo" 
-            className="h-10 sm:h-12 md:h-14 w-auto object-contain dark:brightness-200 transition-transform duration-200 group-hover:scale-105" 
+            className="h-10 sm:h-12 md:h-13 w-auto object-contain dark:invert transition-transform duration-200 group-hover:scale-105" 
           />
         </button>
 

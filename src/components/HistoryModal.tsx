@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
-import malvisionLogoSvg from '../assets/MalVision_glossy_black_logo_2K_202608300636.svg';
+import malvisionLogoSvg from '../assets/MalVision_glossy_black_logo_2K_2026083006316.svg';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface HistoryModalProps {
 }
 
 /**
- * Native PDF Generator featuring the vector SVG 3D MalVision logo
+ * Native PDF Generator featuring the official MalVision_glossy_black_logo_2K_2026083006316.svg
  * Uses light grey paper background (#f4f4f5), dark text (#09090b), and strict red/green status colors.
  */
 export function downloadMalVisionPdfReport(item: ScanResultData) {
