@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
@@ -16,6 +16,13 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
   const [historySearch, setHistorySearch] = useState('');
   const [expandedScanId, setExpandedScanId] = useState<string | null>(null);
 
+  // Filter button refs for smooth sliding tab indicator
+  const allRef = useRef<HTMLButtonElement>(null);
+  const safeRef = useRef<HTMLButtonElement>(null);
+  const suspiciousRef = useRef<HTMLButtonElement>(null);
+  const maliciousRef = useRef<HTMLButtonElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+
   const loadHistory = () => {
     setHistoryItems(getScanHistory(user?.email));
   };
@@ -25,6 +32,22 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
       loadHistory();
     }
   }, [isOpen, user]);
+
+  // Update sliding indicator position on filter change
+  useEffect(() => {
+    if (!isOpen) return;
+    let targetRef = allRef;
+    if (historyFilter === 'Safe') targetRef = safeRef;
+    else if (historyFilter === 'Suspicious') targetRef = suspiciousRef;
+    else if (historyFilter === 'Malicious') targetRef = maliciousRef;
+
+    if (targetRef.current) {
+      setIndicatorStyle({
+        left: targetRef.current.offsetLeft,
+        width: targetRef.current.offsetWidth,
+      });
+    }
+  }, [historyFilter, isOpen, historyItems.length]);
 
   if (!isOpen) return null;
 
@@ -55,9 +78,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
       className="fixed inset-0 z-50 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-200 flex justify-end p-0"
       onClick={onClose}
     >
-      {/* TapType Style Floating Right Panel with Squarerounded Corners (Rounded-[28px]) */}
+      {/* Floating Right Panel (Fully framed, top-4 & bottom-4 to prevent cut-offs) */}
       <div 
-        className="fixed top-3 bottom-3 right-3 sm:right-4 w-[calc(100%-24px)] sm:w-[400px] md:w-[420px] bg-white dark:bg-[#18181D] border border-neutral-200/90 dark:border-neutral-800/90 rounded-[28px] shadow-2xl flex flex-col justify-between relative transform animate-in slide-in-from-right duration-300 shrink-0 p-5 space-y-4 overflow-hidden z-50"
+        className="fixed top-4 bottom-4 right-3 sm:right-5 w-[calc(100%-24px)] sm:w-[400px] md:w-[420px] max-h-[calc(100vh-32px)] bg-white dark:bg-[#18181D] border border-neutral-200/90 dark:border-neutral-800/90 rounded-[28px] shadow-2xl flex flex-col justify-between relative transform animate-in slide-in-from-right duration-300 p-5 overflow-hidden z-50 box-border"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Bar Header */}
@@ -86,7 +109,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
         </div>
 
         {/* Search & Action Bar */}
-        <div className="space-y-3 shrink-0">
+        <div className="space-y-3 shrink-0 pt-1">
           <div className="flex items-center justify-between gap-2">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-neutral-400" />
@@ -110,13 +133,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             )}
           </div>
 
-          {/* Text-Only Filter Links (Text Highlight Only - NO Background Fill) */}
-          <div className="flex items-center space-x-4 text-xs pt-1 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2">
+          {/* Smooth Sliding Filter Bar (All, Safe, Suspicious, Malicious) */}
+          <div className="relative flex items-center space-x-3 text-xs pt-1 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2.5 overflow-x-auto scrollbar-none">
             <button
+              ref={allRef}
               onClick={() => setHistoryFilter('all')}
-              className={`transition cursor-pointer ${
+              className={`transition cursor-pointer relative z-10 ${
                 historyFilter === 'all'
-                  ? 'text-neutral-900 dark:text-white font-bold underline decoration-2 underline-offset-4'
+                  ? 'text-neutral-900 dark:text-white font-bold'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white font-medium'
               }`}
             >
@@ -124,10 +148,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             </button>
 
             <button
+              ref={safeRef}
               onClick={() => setHistoryFilter('Safe')}
-              className={`transition cursor-pointer ${
+              className={`transition cursor-pointer relative z-10 ${
                 historyFilter === 'Safe'
-                  ? 'text-emerald-600 dark:text-emerald-400 font-bold underline decoration-2 underline-offset-4'
+                  ? 'text-emerald-600 dark:text-emerald-400 font-bold'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 font-medium'
               }`}
             >
@@ -135,10 +160,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             </button>
 
             <button
+              ref={suspiciousRef}
               onClick={() => setHistoryFilter('Suspicious')}
-              className={`transition cursor-pointer ${
+              className={`transition cursor-pointer relative z-10 ${
                 historyFilter === 'Suspicious'
-                  ? 'text-amber-600 dark:text-amber-400 font-bold underline decoration-2 underline-offset-4'
+                  ? 'text-amber-600 dark:text-amber-400 font-bold'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 font-medium'
               }`}
             >
@@ -146,22 +172,40 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             </button>
 
             <button
+              ref={maliciousRef}
               onClick={() => setHistoryFilter('Malicious')}
-              className={`transition cursor-pointer ${
+              className={`transition cursor-pointer relative z-10 ${
                 historyFilter === 'Malicious'
-                  ? 'text-rose-600 dark:text-rose-400 font-bold underline decoration-2 underline-offset-4'
+                  ? 'text-rose-600 dark:text-rose-400 font-bold'
                   : 'text-neutral-500 dark:text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 font-medium'
               }`}
             >
               Malicious
             </button>
+
+            {/* Smooth Sliding Underline Indicator */}
+            <div
+              className={`absolute bottom-0 h-0.5 rounded-full transition-all duration-300 ease-out z-0 ${
+                historyFilter === 'Safe'
+                  ? 'bg-emerald-500'
+                  : historyFilter === 'Suspicious'
+                  ? 'bg-amber-500'
+                  : historyFilter === 'Malicious'
+                  ? 'bg-rose-500'
+                  : 'bg-neutral-900 dark:bg-white'
+              }`}
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+              }}
+            />
           </div>
         </div>
 
-        {/* Scrollable Records List */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5">
+        {/* Scrollable Records List (Fits perfectly within framed viewport) */}
+        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 pt-2 min-h-0">
           {filteredHistory.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-neutral-200 dark:border-neutral-800/80 rounded-2xl space-y-2.5 bg-neutral-50/50 dark:bg-neutral-900/30 my-4">
+            <div className="p-6 text-center border border-dashed border-neutral-200 dark:border-neutral-800/80 rounded-2xl space-y-2.5 bg-neutral-50/50 dark:bg-neutral-900/30 my-2">
               <Clock className="w-8 h-8 text-neutral-400 mx-auto" />
               <div className="space-y-1">
                 <p className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
