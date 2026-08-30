@@ -52,34 +52,34 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-200 flex justify-end"
+      className="fixed inset-0 z-50 bg-neutral-950/60 backdrop-blur-xs animate-in fade-in duration-200 flex justify-end p-0"
       onClick={onClose}
     >
-      {/* Right Side Fixed Width Drawer Panel (No size change on search) */}
+      {/* TapType Style Floating Right Panel with Squarerounded Corners (Rounded-[28px]) */}
       <div 
-        className="w-full sm:w-[450px] md:w-[480px] h-full bg-white dark:bg-[#18181B] border-l border-neutral-200/80 dark:border-neutral-800 shadow-2xl flex flex-col justify-between relative transform animate-in slide-in-from-right duration-300 shrink-0 p-6 space-y-5"
+        className="fixed top-3 bottom-3 right-3 sm:right-4 w-[calc(100%-24px)] sm:w-[400px] md:w-[420px] bg-white dark:bg-[#18181D] border border-neutral-200/90 dark:border-neutral-800/90 rounded-[28px] shadow-2xl flex flex-col justify-between relative transform animate-in slide-in-from-right duration-300 shrink-0 p-5 space-y-4 overflow-hidden z-50"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-200/80 dark:border-neutral-800 pb-4 shrink-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shrink-0">
-              <Clock className="w-4 h-4 text-neutral-800 dark:text-neutral-200" />
+        {/* Top Bar Header */}
+        <div className="flex items-center justify-between border-b border-neutral-200/80 dark:border-neutral-800/80 pb-3 shrink-0">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-neutral-100 dark:bg-neutral-800/80 border border-neutral-200/80 dark:border-neutral-700/80 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-rose-500" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-neutral-900 dark:text-white tracking-tight">
-                Scan History
+              <h2 className="text-base font-bold text-neutral-900 dark:text-white tracking-tight">
+                Session History
               </h2>
-              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                {user ? user.email : 'Active session scan log'}
+              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate max-w-[200px]">
+                {user ? user.email : 'Guest scan log'}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
-            aria-label="Close history drawer"
+            className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800/80 text-neutral-500 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center transition cursor-pointer shrink-0 border border-neutral-200/60 dark:border-neutral-700/60"
+            aria-label="Close history panel"
           >
             <X className="w-4 h-4" />
           </button>
@@ -95,7 +95,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
                 placeholder="Search file name, URL, or hash..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition"
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/80 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600 transition"
               />
             </div>
 
@@ -110,7 +110,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             )}
           </div>
 
-          {/* Simple Text-Only Filter Chips (Text Highlight Only - NO Background Box) */}
+          {/* Text-Only Filter Links (Text Highlight Only - NO Background Fill) */}
           <div className="flex items-center space-x-4 text-xs pt-1 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2">
             <button
               onClick={() => setHistoryFilter('all')}
@@ -158,10 +158,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
           </div>
         </div>
 
-        {/* Scrollable Records List (Fixed height container) */}
+        {/* Scrollable Records List */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-2.5">
           {filteredHistory.length === 0 ? (
-            <div className="p-8 text-center border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl space-y-2.5 bg-neutral-50/50 dark:bg-neutral-900/30 my-4">
+            <div className="p-8 text-center border border-dashed border-neutral-200 dark:border-neutral-800/80 rounded-2xl space-y-2.5 bg-neutral-50/50 dark:bg-neutral-900/30 my-4">
               <Clock className="w-8 h-8 text-neutral-400 mx-auto" />
               <div className="space-y-1">
                 <p className="text-xs font-bold text-neutral-800 dark:text-neutral-200">
@@ -189,11 +189,11 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
                 <div
                   key={item.id}
                   onClick={() => setExpandedScanId(isExpanded ? null : item.id)}
-                  className="p-3 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-neutral-50/60 dark:bg-neutral-900/60 hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer space-y-2.5"
+                  className="p-3.5 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-neutral-50/70 dark:bg-[#222227]/60 hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer space-y-2.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-2.5 truncate flex-1 min-w-0">
-                      <div className="p-1.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700 shrink-0">
+                      <div className="p-1.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/80 shrink-0">
                         {item.status === 'Safe' ? (
                           <SafeIcon className="w-3.5 h-3.5 text-emerald-500" />
                         ) : (
