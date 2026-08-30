@@ -10,6 +10,185 @@ interface HistoryModalProps {
   onOpenAuth?: () => void;
 }
 
+/**
+ * Generates and prints an official MalVision PDF Threat Inspection Certificate
+ */
+export function downloadMalVisionPdfReport(item: ScanResultData) {
+  const printWindow = window.open('', '_blank', 'width=850,height=950');
+  if (!printWindow) {
+    alert('Please allow popups to download the PDF report.');
+    return;
+  }
+
+  const isSafe = item.status === 'Safe';
+  const statusColor = isSafe ? '#10b981' : '#f43f5e';
+  const statusBg = isSafe ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.12)';
+  const findingsHtml = (item.findings || [])
+    .map(
+      (f) => `
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px;">
+      <div style="font-weight: 700; color: #ffffff; font-size: 13px;">${f.title}</div>
+      <div style="color: #a1a1aa; font-size: 12px; margin-top: 4px;">${f.detail}</div>
+    </div>
+  `
+    )
+    .join('');
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>MalVision_Threat_Report_${item.id || 'scan'}.pdf</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+          body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #09090b;
+            color: #f4f4f5;
+            margin: 0;
+            padding: 40px;
+            -webkit-print-color-adjust: exact;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #27272a;
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+          }
+          .logo span { color: #f43f5e; }
+          .badge {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 9999px;
+            font-weight: 800;
+            font-size: 13px;
+            color: ${statusColor};
+            background: ${statusBg};
+            border: 1px solid ${statusColor};
+          }
+          .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+          }
+          .card {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            padding: 16px;
+          }
+          .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #71717a;
+            font-weight: 700;
+            margin-bottom: 6px;
+          }
+          .value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            word-break: break-all;
+          }
+          .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 12px;
+            border-left: 3px solid #f43f5e;
+            padding-left: 10px;
+          }
+          .explanation {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 16px;
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #d4d4d8;
+            margin-bottom: 32px;
+          }
+          .footer {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid #27272a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #71717a;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="logo">Mal<span>Vision</span></div>
+            <div style="font-size: 12px; color: #a1a1aa; margin-top: 4px;">AI-Powered Threat Inspection Certificate</div>
+          </div>
+          <div class="badge">${item.status.toUpperCase()}</div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="label">Target Analyzed</div>
+            <div class="value">${item.target}</div>
+          </div>
+          <div class="card">
+            <div class="label">Inspection Timestamp</div>
+            <div class="value">${item.timestamp || new Date().toLocaleString()}</div>
+          </div>
+          <div class="card">
+            <div class="label">Target Type</div>
+            <div class="value" style="text-transform: uppercase;">${item.targetType}</div>
+          </div>
+          <div class="card">
+            <div class="label">Report Identifier</div>
+            <div class="value">${item.id}</div>
+          </div>
+        </div>
+
+        <div class="section-title">Assessment Explanation</div>
+        <div class="explanation">${item.explanation}</div>
+
+        <div class="section-title">Key Threat Findings</div>
+        <div style="margin-bottom: 32px;">${findingsHtml || '<div style="color: #71717a; font-size: 12px;">No structural threat findings registered.</div>'}</div>
+
+        <div class="section-title">Recommended Security Action</div>
+        <div class="card" style="background: rgba(244,63,94,0.05); border-color: rgba(244,63,94,0.2); margin-bottom: 32px;">
+          <div style="color: #f43f5e; font-weight: 700; font-size: 13px;">${item.recommendedAction || 'No action needed.'}</div>
+        </div>
+
+        <div class="footer">
+          <div>Official Threat Intelligence Audit • Verified by MalVision Core Engine</div>
+          <div>https://malvision.vercel.app</div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+}
+
 export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, user, onOpenAuth }) => {
   const [historyItems, setHistoryItems] = useState<ScanResultData[]>([]);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'Safe' | 'Malicious'>('all');
@@ -60,15 +239,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
     setHistoryItems(updated);
   };
 
-  const handleDownloadItemReport = (item: ScanResultData, e: React.MouseEvent) => {
+  const handleDownloadItemPdf = (item: ScanResultData, e: React.MouseEvent) => {
     e.stopPropagation();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(item, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `malvision_report_${item.id || 'scan'}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    downloadMalVisionPdfReport(item);
   };
 
   const filteredHistory = historyItems.filter((item) => {
@@ -142,7 +315,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
             )}
           </div>
 
-          {/* Smooth Sliding Filter Bar (All, Safe, Malicious - Suspicious Removed) */}
+          {/* Smooth Sliding Filter Bar (All, Safe, Malicious) */}
           <div className="relative flex items-center space-x-4 text-xs pt-1 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2.5 overflow-x-auto scrollbar-none">
             <button
               ref={allRef}
@@ -264,30 +437,21 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
                       </div>
                     </div>
 
-                    {/* Status Badge & Actions */}
-                    <div className="flex items-center space-x-1 shrink-0">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          item.status === 'Safe'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-
-                      {/* Download Option Button for Every History Item */}
+                    {/* Clean Action Buttons (Safe/Malicious text removed for clean minimalism) */}
+                    <div className="flex items-center space-x-1.5 shrink-0">
+                      {/* Download PDF Certificate Option for Every History File */}
                       <button
-                        onClick={(e) => handleDownloadItemReport(item, e)}
-                        className="p-1 rounded-lg text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 transition cursor-pointer"
-                        title="Download Report (.json)"
+                        onClick={(e) => handleDownloadItemPdf(item, e)}
+                        className="p-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-rose-500 hover:border-rose-300 dark:hover:border-rose-800 transition cursor-pointer flex items-center space-x-1 text-[11px] font-semibold shadow-2xs"
+                        title="Download PDF Threat Report"
                       >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-3.5 h-3.5 text-rose-500" />
+                        <span className="hidden sm:inline text-[10px]">PDF</span>
                       </button>
 
                       <button
                         onClick={(e) => handleRemoveItem(item.id, e)}
-                        className="p-1 rounded-lg text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 transition cursor-pointer"
+                        className="p-1.5 rounded-xl text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 transition cursor-pointer"
                         title="Delete entry"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
