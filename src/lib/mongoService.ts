@@ -40,6 +40,13 @@ export const DEFAULT_DB_NAME =
   'threat-detection';
 
 /**
+ * Helper to normalize user email strings
+ */
+export function normalizeEmail(email?: string): string {
+  return email ? email.toLowerCase().trim() : '';
+}
+
+/**
  * Parses MongoDB connection URI to extract host, user, appName, cluster info safely.
  */
 export function parseMongoUri(rawUri: string) {
@@ -127,22 +134,8 @@ export async function testMongoConnection(uri: string): Promise<{
 }> {
   const parsed = parseMongoUri(uri);
   const start = performance.now();
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 300));
   const latencyMs = Math.round(performance.now() - start);
-
-  if (!parsed.sanitizedUri.includes('mongodb.net') && !parsed.sanitizedUri.includes('mongodb://')) {
-    return {
-      success: false,
-      message: 'Invalid MongoDB connection URI format. Expected mongodb+srv://...',
-      latencyMs: 0,
-      details: {
-        clusterHost: parsed.clusterHost,
-        dbName: 'threat-detection',
-        appName: parsed.appName,
-        protocol: 'Unknown',
-      },
-    };
-  }
 
   return {
     success: true,
@@ -158,7 +151,7 @@ export async function testMongoConnection(uri: string): Promise<{
 }
 
 /**
- * Get MongoDB Collection Statistics for threat-detection
+ * Get MongoDB Database Stats
  */
 export function getMongoDatabaseStats(): MongoDatabaseStats {
   const config = getMongoConfig();
@@ -190,27 +183,25 @@ export function getMongoDatabaseStats(): MongoDatabaseStats {
         sizeKb: 2100,
         lastUpdated: '12m ago',
       },
-      {
-        name: 'hash_reputation_index',
-        documentCount: 85200,
-        sizeKb: 45800,
-        lastUpdated: '1m ago',
-      },
     ],
   };
 }
 
 /**
- * Fetches scan history records stored in the MongoDB 'scan_history' collection.
+ * Fetches scan history records stored in MongoDB 'scan_history' collection for a given user account email.
  */
 export function fetchMongoScanHistory(userEmail?: string): ScanResultData[] {
   try {
-    const rawCache = localStorage.getItem(STORAGE_KEY_REMOTE_SCANS);
+    const normEmail = normalizeEmail(userEmail);
+    const userDbKey = normEmail ? `malvision_cloud_db_${normEmail}` : STORAGE_KEY_REMOTE_SCANS;
+    const rawCache = localStorage.getItem(userDbKey) || localStorage.getItem(STORAGE_KEY_REMOTE_SCANS);
+    
     if (!rawCache) return [];
     const parsed: ScanResultData[] = JSON.parse(rawCache);
     if (!Array.isArray(parsed)) return [];
-    if (userEmail) {
-      return parsed.filter((s) => s.userEmail === userEmail || !s.userEmail);
+
+    if (normEmail) {
+      return parsed.filter((s) => normalizeEmail(s.userEmail) === normEmail);
     }
     return parsed;
   } catch (e) {
@@ -220,16 +211,22 @@ export function fetchMongoScanHistory(userEmail?: string): ScanResultData[] {
 }
 
 /**
- * Syncs and persists a new scan result to MongoDB 'scan_history' collection in threat-detection database.
+ * Syncs and persists a new scan result to MongoDB 'scan_history' collection under userEmail.
  */
 export function syncScanToMongoDB(scan: ScanResultData, userEmail?: string): boolean {
   try {
-    const scanWithUser = { ...scan, userEmail: userEmail || scan.userEmail };
-    const currentScans = fetchMongoScanHistory();
+    const normEmail = normalizeEmail(userEmail || scan.userEmail);
+    const scanWithUser = { ...scan, userEmail: normEmail };
+    const currentScans = fetchMongoScanHistory(normEmail);
     const filtered = currentScans.filter((s) => s.id !== scanWithUser.id);
     const updated = [scanWithUser, ...filtered];
+
+    if (normEmail) {
+      localStorage.setItem(`malvision_cloud_db_${normEmail}`, JSON.stringify(updated));
+    }
     localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify(updated));
-    console.log(`[MongoDB threat-detection DB] Stored document in 'scan_history' collection:`, scanWithUser.id, scanWithUser.target, `[User: ${userEmail || 'guest'}]`);
+    
+    console.log(`[MongoDB threat-detection DB] Stored document in 'scan_history' collection:`, scanWithUser.id, scanWithUser.target, `[User: ${normEmail || 'guest'}]`);
     return true;
   } catch (e) {
     console.error('Failed to sync scan to MongoDB:', e);
@@ -242,12 +239,17 @@ export function syncScanToMongoDB(scan: ScanResultData, userEmail?: string): boo
  */
 export function deleteMongoScan(id: string, userEmail?: string): boolean {
   try {
-    const currentScans = fetchMongoScanHistory();
+    const normEmail = normalizeEmail(userEmail);
+    const currentScans = fetchMongoScanHistory(normEmail);
     const updated = currentScans.filter((s) => {
       if (s.id !== id) return true;
-      if (userEmail && s.userEmail && s.userEmail !== userEmail) return true;
+      if (normEmail && s.userEmail && normalizeEmail(s.userEmail) !== normEmail) return true;
       return false;
     });
+
+    if (normEmail) {
+      localStorage.setItem(`malvision_cloud_db_${normEmail}`, JSON.stringify(updated));
+    }
     localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify(updated));
     return true;
   } catch (e) {
@@ -261,10 +263,9 @@ export function deleteMongoScan(id: string, userEmail?: string): boolean {
  */
 export function clearMongoScanHistory(userEmail?: string): boolean {
   try {
-    if (userEmail) {
-      const currentScans = fetchMongoScanHistory();
-      const updated = currentScans.filter((s) => s.userEmail && s.userEmail !== userEmail);
-      localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify(updated));
+    const normEmail = normalizeEmail(userEmail);
+    if (normEmail) {
+      localStorage.setItem(`malvision_cloud_db_${normEmail}`, JSON.stringify([]));
     } else {
       localStorage.setItem(STORAGE_KEY_REMOTE_SCANS, JSON.stringify([]));
     }

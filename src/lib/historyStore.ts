@@ -1,5 +1,5 @@
 import type { ScanResultData } from '../types';
-import { syncScanToMongoDB, fetchMongoScanHistory, deleteMongoScan, clearMongoScanHistory } from './mongoService';
+import { syncScanToMongoDB, fetchMongoScanHistory, deleteMongoScan, clearMongoScanHistory, normalizeEmail } from './mongoService';
 
 const GUEST_SESSION_KEY = 'malvision_guest_session_history';
 
@@ -26,14 +26,16 @@ function saveGuestSessionScans(scans: ScanResultData[]): void {
 
 export function getScanHistory(userEmail?: string): ScanResultData[] {
   try {
-    // If not signed in (Guest User), return session-persisted guest scans (survives tab switches & reloads)
-    if (!userEmail) {
+    const normEmail = normalizeEmail(userEmail);
+
+    // If not signed in (Guest User), return session-persisted guest scans
+    if (!normEmail) {
       return getGuestSessionScans();
     }
 
-    // For Signed-In users, fetch user-specific scans from local storage and MongoDB
-    const storageKey = `malvision_scan_history_${userEmail}`;
-    const mongoScans = fetchMongoScanHistory(userEmail);
+    // For Signed-In users, fetch user-specific scans from user account key and MongoDB database
+    const storageKey = `malvision_scan_history_${normEmail}`;
+    const mongoScans = fetchMongoScanHistory(normEmail);
     const raw = localStorage.getItem(storageKey);
     
     let localScans: ScanResultData[] = [];
@@ -48,7 +50,7 @@ export function getScanHistory(userEmail?: string): ScanResultData[] {
     const mergedMap = new Map<string, ScanResultData>();
     [...mongoScans, ...localScans].forEach((scan) => {
       if (scan && scan.id) {
-        mergedMap.set(scan.id, { ...scan, userEmail });
+        mergedMap.set(scan.id, { ...scan, userEmail: normEmail });
       }
     });
 
@@ -61,13 +63,14 @@ export function getScanHistory(userEmail?: string): ScanResultData[] {
 
 export function saveScanToHistory(scan: ScanResultData, userEmail?: string): ScanResultData[] {
   try {
+    const normEmail = normalizeEmail(userEmail || scan.userEmail);
     const scanWithUser: ScanResultData = {
       ...scan,
-      userEmail: userEmail || scan.userEmail
+      userEmail: normEmail
     };
 
     // If guest user, store in sessionStorage (persists through tab switches & page reloads)
-    if (!userEmail) {
+    if (!normEmail) {
       const currentGuestScans = getGuestSessionScans();
       const filtered = currentGuestScans.filter(item => item.id !== scanWithUser.id);
       const updated = [scanWithUser, ...filtered];
@@ -76,8 +79,8 @@ export function saveScanToHistory(scan: ScanResultData, userEmail?: string): Sca
     }
 
     // For Signed-In users, store in user-specific key & sync to MongoDB
-    const storageKey = `malvision_scan_history_${userEmail}`;
-    const current = getScanHistory(userEmail);
+    const storageKey = `malvision_scan_history_${normEmail}`;
+    const current = getScanHistory(normEmail);
     const filtered = current.filter(item => item.id !== scanWithUser.id);
     const updated = [scanWithUser, ...filtered];
     
@@ -85,7 +88,7 @@ export function saveScanToHistory(scan: ScanResultData, userEmail?: string): Sca
     
     // Sync scan record to MongoDB threat-detection database under userEmail
     try {
-      syncScanToMongoDB(scanWithUser, userEmail);
+      syncScanToMongoDB(scanWithUser, normEmail);
     } catch (err) {
       console.warn('MongoDB sync notice:', err);
     }
@@ -99,19 +102,21 @@ export function saveScanToHistory(scan: ScanResultData, userEmail?: string): Sca
 
 export function removeScanFromHistory(id: string, userEmail?: string): ScanResultData[] {
   try {
-    if (!userEmail) {
+    const normEmail = normalizeEmail(userEmail);
+
+    if (!normEmail) {
       const currentGuestScans = getGuestSessionScans();
       const updated = currentGuestScans.filter(item => item.id !== id);
       saveGuestSessionScans(updated);
       return updated;
     }
 
-    const storageKey = `malvision_scan_history_${userEmail}`;
-    const current = getScanHistory(userEmail);
+    const storageKey = `malvision_scan_history_${normEmail}`;
+    const current = getScanHistory(normEmail);
     const updated = current.filter(item => item.id !== id);
     
     localStorage.setItem(storageKey, JSON.stringify(updated));
-    deleteMongoScan(id, userEmail);
+    deleteMongoScan(id, normEmail);
     return updated;
   } catch (e) {
     console.error('Error removing scan from history:', e);
@@ -121,14 +126,16 @@ export function removeScanFromHistory(id: string, userEmail?: string): ScanResul
 
 export function clearScanHistory(userEmail?: string): ScanResultData[] {
   try {
-    if (!userEmail) {
+    const normEmail = normalizeEmail(userEmail);
+
+    if (!normEmail) {
       saveGuestSessionScans([]);
       return [];
     }
 
-    const storageKey = `malvision_scan_history_${userEmail}`;
+    const storageKey = `malvision_scan_history_${normEmail}`;
     localStorage.setItem(storageKey, JSON.stringify([]));
-    clearMongoScanHistory(userEmail);
+    clearMongoScanHistory(normEmail);
     return [];
   } catch (e) {
     console.error('Error clearing scan history:', e);
