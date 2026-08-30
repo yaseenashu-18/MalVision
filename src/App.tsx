@@ -20,8 +20,21 @@ export const AppContent: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
 
-  // Authenticated user state
-  const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(null);
+  // Persistent authenticated user session state (restored automatically from localStorage on page reload)
+  const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem('malvision_user_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.email === 'string') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading stored Google session:', e);
+    }
+    return null;
+  });
 
   const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
     setAuthModalOpen(true);
@@ -159,10 +172,20 @@ export const AppContent: React.FC = () => {
 
   const handleAuthSuccess = (userData: { name: string; email: string; avatar?: string; provider?: string }) => {
     setUser(userData);
+    try {
+      localStorage.setItem('malvision_user_session', JSON.stringify(userData));
+    } catch (e) {
+      console.error('Error saving Google user session:', e);
+    }
   };
 
   const handleSignOut = () => {
     setUser(null);
+    try {
+      localStorage.removeItem('malvision_user_session');
+    } catch (e) {
+      console.error('Error removing Google user session:', e);
+    }
   };
 
   return (
