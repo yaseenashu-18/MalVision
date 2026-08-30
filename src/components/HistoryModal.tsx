@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Clock, Search, Trash2, ShieldAlert, ShieldCheck as SafeIcon, ExternalLink, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { getScanHistory, removeScanFromHistory, clearScanHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
-import malvisionLogo from '../assets/MalVision_glossy_black_logo_2K_202608300636.jpeg';
+import malvisionLogoSvg from '../assets/MalVision_glossy_black_logo_2K_202608300636.svg';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface HistoryModalProps {
 }
 
 /**
- * Native PDF Generator featuring the official glossy 3D black MalVision logo
+ * Native PDF Generator featuring the vector SVG 3D MalVision logo
  * Uses light grey paper background (#f4f4f5), dark text (#09090b), and strict red/green status colors.
  */
 export function downloadMalVisionPdfReport(item: ScanResultData) {
@@ -50,7 +50,7 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             margin-bottom: 28px;
           }
           .logo-img {
-            height: 38px;
+            height: 48px;
             width: auto;
             object-fit: contain;
           }
@@ -106,7 +106,7 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
       <body>
         <div class="header">
           <div>
-            <img src="${malvisionLogo}" alt="MalVision Logo" class="logo-img" />
+            <img src="${malvisionLogoSvg}" alt="MalVision Logo" class="logo-img" />
             <div class="report-title">Threat Analysis Report</div>
           </div>
           <div class="status-tag">
