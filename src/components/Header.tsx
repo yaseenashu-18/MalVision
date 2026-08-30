@@ -78,15 +78,15 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-warm-neutral/80 dark:bg-warm-neutral-dark/80 border-b border-neutral-200/60 dark:border-neutral-800/60 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo & Name using the official glossy 3D black logo */}
+        {/* Brand Logo & Name using the official glossy 3D black logo (Big & Prominent) */}
         <button 
           onClick={() => onNavigate('dashboard')}
-          className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group"
+          className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1"
         >
           <img 
             src={malvisionLogo} 
             alt="MalVision Logo" 
-            className="h-7 sm:h-9 w-auto object-contain dark:invert transition-transform group-hover:scale-105" 
+            className="h-10 sm:h-12 md:h-13 w-auto object-contain dark:invert transition-transform duration-200 group-hover:scale-105" 
           />
         </button>
 
