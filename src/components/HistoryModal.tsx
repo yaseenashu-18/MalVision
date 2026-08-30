@@ -11,131 +11,205 @@ interface HistoryModalProps {
 }
 
 /**
- * Direct PDF Download (Ensures non-blank PDF generation with glossy MalVision logo & paper styling)
+ * Native PDF Generator (100% Guaranteed Non-Blank Render with Paper Styling)
+ * Uses light grey paper background (#f4f4f5), dark text (#09090b), glossy MalVision logo, and strict red/green status colors.
  */
-export async function downloadMalVisionPdfReport(item: ScanResultData) {
-  // Dynamically load html2pdf script if not already present
-  if (!(window as any).html2pdf) {
-    await new Promise<void>((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      script.onload = () => resolve();
-      document.head.appendChild(script);
-    });
-  }
-
+export function downloadMalVisionPdfReport(item: ScanResultData) {
   const isSafe = item.status === 'Safe';
   // Strict 3-color palette: Green (#16a34a) for Safe, Red (#dc2626) for Malicious, rest Black/Grey/White
   const statusColor = isSafe ? '#16a34a' : '#dc2626';
+  const statusBg = isSafe ? 'rgba(22, 163, 74, 0.08)' : 'rgba(220, 38, 38, 0.08)';
 
-  // Paper Style Container (NO Cards, NO Boxes, Light Grey Background #f4f4f5)
-  const container = document.createElement('div');
-  container.id = 'malvision-pdf-export-container';
-  container.style.width = '750px';
-  container.style.padding = '40px 48px';
-  container.style.backgroundColor = '#f4f4f5';
-  container.style.color = '#09090b';
-  container.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
-  container.style.boxSizing = 'border-box';
-  
-  // Frame inside viewport invisibly so html2canvas captures full 100% dimensions without blank pages
-  container.style.position = 'fixed';
-  container.style.top = '0';
-  container.style.left = '0';
-  container.style.zIndex = '-9999';
-  container.style.opacity = '1';
-
-  container.innerHTML = `
-    <!-- Glassy MalVision Logo Badge & Paper Header -->
-    <div style="border-bottom: 2px solid #e4e4e7; padding-bottom: 24px; margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end;">
-      <div>
-        <div style="display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.1); padding: 8px 20px; border-radius: 16px; font-size: 26px; font-weight: 800; color: #09090b; letter-spacing: -0.5px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-          Mal<span style="color: #dc2626;">Vision</span>
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>MalVision_Threat_Report_${item.id || 'scan'}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f4f4f5 !important;
+            color: #09090b !important;
+            margin: 0;
+            padding: 30px;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #e4e4e7;
+            padding-bottom: 20px;
+            margin-bottom: 28px;
+          }
+          .glass-logo {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.85) !important;
+            border: 1px solid rgba(0, 0, 0, 0.12) !important;
+            padding: 8px 20px;
+            border-radius: 14px;
+            font-size: 24px;
+            font-weight: 800;
+            color: #09090b !important;
+            letter-spacing: -0.5px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+          }
+          .glass-logo span { color: #dc2626 !important; }
+          .report-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #71717a !important;
+            font-weight: 700;
+            margin-top: 6px;
+          }
+          .status-tag {
+            font-size: 14px;
+            font-weight: 800;
+            color: ${statusColor} !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: ${statusBg} !important;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            border: 1px solid ${statusColor} !important;
+            display: inline-block;
+          }
+          .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #71717a !important;
+            font-weight: 700;
+            margin-bottom: 4px;
+          }
+          .section-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #09090b !important;
+            word-break: break-all;
+          }
+          .divider {
+            border-top: 1px solid #e4e4e7;
+            margin: 24px 0;
+          }
+          .footer {
+            margin-top: 48px;
+            padding-top: 16px;
+            border-top: 1px solid #e4e4e7;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #71717a !important;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="glass-logo">Mal<span>Vision</span></div>
+            <div class="report-title">Threat Analysis Report</div>
+          </div>
+          <div class="status-tag">
+            STATUS: ${item.status.toUpperCase()}
+          </div>
         </div>
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #71717a; font-weight: 700; margin-top: 8px;">
-          Threat Analysis Report
+
+        <!-- Essential File Information (Paper Style - NO Boxes, NO Cards) -->
+        <div style="margin-bottom: 24px; line-height: 1.8;">
+          <div style="margin-bottom: 16px;">
+            <div class="section-label">Target Analyzed</div>
+            <div class="section-value">${item.target}</div>
+          </div>
+
+          <div style="display: flex; gap: 48px; margin-bottom: 16px;">
+            <div>
+              <div class="section-label">Scan Timestamp</div>
+              <div style="font-size: 13px; font-weight: 600; color: #18181b;">${item.timestamp || new Date().toLocaleString()}</div>
+            </div>
+            <div>
+              <div class="section-label">Target Type</div>
+              <div style="font-size: 13px; font-weight: 600; color: #18181b; text-transform: uppercase;">${item.targetType}</div>
+            </div>
+            <div>
+              <div class="section-label">Report ID</div>
+              <div style="font-size: 13px; font-weight: 600; color: #18181b;">${item.id}</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div style="text-align: right;">
-        <div style="font-size: 14px; font-weight: 800; color: ${statusColor}; text-transform: uppercase; letter-spacing: 0.5px;">
-          STATUS: ${item.status.toUpperCase()}
+
+        <div class="divider"></div>
+
+        <!-- Assessment Summary -->
+        <div style="margin-bottom: 24px;">
+          <div style="font-size: 12px; font-weight: 800; color: #09090b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+            Assessment Summary
+          </div>
+          <div style="font-size: 13px; line-height: 1.7; color: #27272a;">
+            ${item.explanation}
+          </div>
         </div>
-        <div style="font-size: 10px; color: #71717a; margin-top: 4px;">
-          REF: ${item.id}
+
+        <!-- Recommended Action -->
+        <div style="margin-bottom: 32px;">
+          <div style="font-size: 12px; font-weight: 800; color: #09090b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+            Recommended Action
+          </div>
+          <div style="font-size: 13px; font-weight: 700; color: ${statusColor};">
+            ${item.recommendedAction || 'No action required.'}
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Essential File Information (Paper Style - NO Boxes, NO Cards) -->
-    <div style="margin-bottom: 32px; line-height: 1.8;">
-      <div style="margin-bottom: 18px;">
-        <div style="font-size: 11px; text-transform: uppercase; color: #71717a; font-weight: 700; letter-spacing: 0.5px;">Target Analyzed</div>
-        <div style="font-size: 16px; font-weight: 700; color: #09090b; word-break: break-all;">${item.target}</div>
-      </div>
-
-      <div style="display: flex; gap: 48px; margin-bottom: 18px;">
-        <div>
-          <div style="font-size: 11px; text-transform: uppercase; color: #71717a; font-weight: 700; letter-spacing: 0.5px;">Inspection Timestamp</div>
-          <div style="font-size: 13px; font-weight: 600; color: #18181b;">${item.timestamp || new Date().toLocaleString()}</div>
+        <!-- Footer -->
+        <div class="footer">
+          <div>Verified Threat Analysis • MalVision Security</div>
+          <div>https://malvision.vercel.app</div>
         </div>
-        <div>
-          <div style="font-size: 11px; text-transform: uppercase; color: #71717a; font-weight: 700; letter-spacing: 0.5px;">Target Type</div>
-          <div style="font-size: 13px; font-weight: 600; color: #18181b; text-transform: uppercase;">${item.targetType}</div>
-        </div>
-      </div>
-    </div>
 
-    <div style="border-top: 1px solid #e4e4e7; margin-bottom: 28px;"></div>
-
-    <!-- Assessment Summary -->
-    <div style="margin-bottom: 28px;">
-      <div style="font-size: 12px; font-weight: 800; color: #09090b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-        Assessment Summary
-      </div>
-      <div style="font-size: 13px; line-height: 1.7; color: #27272a;">
-        ${item.explanation}
-      </div>
-    </div>
-
-    <!-- Recommended Action -->
-    <div style="margin-bottom: 36px;">
-      <div style="font-size: 12px; font-weight: 800; color: #09090b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-        Recommended Action
-      </div>
-      <div style="font-size: 13px; font-weight: 700; color: ${statusColor};">
-        ${item.recommendedAction || 'No action required.'}
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div style="border-top: 1px solid #e4e4e7; padding-top: 20px; display: flex; justify-content: space-between; font-size: 10px; color: #71717a;">
-      <div>Verified Threat Intelligence Audit • MalVision Security</div>
-      <div>https://malvision.vercel.app</div>
-    </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 150);
+          };
+        </script>
+      </body>
+    </html>
   `;
 
-  document.body.appendChild(container);
+  // Create print iframe to render paper PDF accurately with zero blank pages
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
 
-  const opt = {
-    margin: [10, 10, 10, 10],
-    filename: `MalVision_Threat_Report_${item.id || 'scan'}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2, 
-      backgroundColor: '#f4f4f5',
-      logging: false,
-      useCORS: true
-    },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
+  document.body.appendChild(iframe);
 
-  try {
-    await (window as any).html2pdf().set(opt).from(container).save();
-  } catch (err) {
-    console.error('Error generating direct PDF:', err);
-  } finally {
-    const existing = document.getElementById('malvision-pdf-export-container');
-    if (existing) document.body.removeChild(existing);
+  const doc = iframe.contentWindow?.document || iframe.contentDocument;
+  if (doc) {
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250);
   }
 }
 
@@ -189,9 +263,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
     setHistoryItems(updated);
   };
 
-  const handleDownloadItemPdf = async (item: ScanResultData, e: React.MouseEvent) => {
+  const handleDownloadItemPdf = (item: ScanResultData, e: React.MouseEvent) => {
     e.stopPropagation();
-    await downloadMalVisionPdfReport(item);
+    downloadMalVisionPdfReport(item);
   };
 
   const filteredHistory = historyItems.filter((item) => {
