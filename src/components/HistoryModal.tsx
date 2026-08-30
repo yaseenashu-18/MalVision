@@ -11,7 +11,7 @@ interface HistoryModalProps {
 }
 
 /**
- * Generates and prints an official MalVision PDF Threat Inspection Certificate
+ * Generates and directly opens the official minimalist MalVision PDF Threat Report
  */
 export function downloadMalVisionPdfReport(item: ScanResultData) {
   const printWindow = window.open('', '_blank', 'width=850,height=950');
@@ -21,18 +21,9 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
   }
 
   const isSafe = item.status === 'Safe';
-  const statusColor = isSafe ? '#10b981' : '#f43f5e';
-  const statusBg = isSafe ? 'rgba(16, 185, 129, 0.12)' : 'rgba(244, 63, 94, 0.12)';
-  const findingsHtml = (item.findings || [])
-    .map(
-      (f) => `
-    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 12px 16px; border-radius: 12px; margin-bottom: 10px;">
-      <div style="font-weight: 700; color: #ffffff; font-size: 13px;">${f.title}</div>
-      <div style="color: #a1a1aa; font-size: 12px; margin-top: 4px;">${f.detail}</div>
-    </div>
-  `
-    )
-    .join('');
+  // Strict 3-color palette: Green (#10b981) for Safe, Red (#ef4444) for Malicious, rest Black/White/Grey
+  const statusColor = isSafe ? '#10b981' : '#ef4444';
+  const statusBg = isSafe ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -53,17 +44,32 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 2px solid #27272a;
+            border-bottom: 1px solid #27272a;
             padding-bottom: 24px;
             margin-bottom: 32px;
           }
-          .logo {
-            font-size: 28px;
+          .glass-logo {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 8px 18px;
+            border-radius: 16px;
+            font-size: 22px;
             font-weight: 800;
-            letter-spacing: -0.5px;
             color: #ffffff;
+            letter-spacing: -0.5px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
           }
-          .logo span { color: #f43f5e; }
+          .glass-logo span { color: #ef4444; }
+          .report-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #71717a;
+            font-weight: 700;
+            margin-top: 4px;
+          }
           .badge {
             display: inline-block;
             padding: 6px 18px;
@@ -73,12 +79,13 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             color: ${statusColor};
             background: ${statusBg};
             border: 1px solid ${statusColor};
+            text-transform: uppercase;
           }
           .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
           }
           .card {
             background: #18181b;
@@ -87,7 +94,7 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             padding: 16px;
           }
           .label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: #71717a;
@@ -95,28 +102,28 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             margin-bottom: 6px;
           }
           .value {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #ffffff;
             word-break: break-all;
           }
           .section-title {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             color: #ffffff;
-            margin-bottom: 12px;
-            border-left: 3px solid #f43f5e;
+            margin-bottom: 10px;
+            border-left: 3px solid ${statusColor};
             padding-left: 10px;
           }
           .explanation {
             background: #18181b;
             border: 1px solid #27272a;
             border-radius: 16px;
-            padding: 20px;
+            padding: 18px;
             font-size: 13px;
             line-height: 1.6;
             color: #d4d4d8;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
           }
           .footer {
             margin-top: 48px;
@@ -133,19 +140,20 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
       <body>
         <div class="header">
           <div>
-            <div class="logo">Mal<span>Vision</span></div>
-            <div style="font-size: 12px; color: #a1a1aa; margin-top: 4px;">AI-Powered Threat Inspection Certificate</div>
+            <div class="glass-logo">Mal<span>Vision</span></div>
+            <div class="report-title">Threat Analysis Report</div>
           </div>
           <div class="badge">${item.status.toUpperCase()}</div>
         </div>
 
+        {/* Essential File & Scan Info */}
         <div class="grid">
           <div class="card">
             <div class="label">Target Analyzed</div>
             <div class="value">${item.target}</div>
           </div>
           <div class="card">
-            <div class="label">Inspection Timestamp</div>
+            <div class="label">Scan Timestamp</div>
             <div class="value">${item.timestamp || new Date().toLocaleString()}</div>
           </div>
           <div class="card">
@@ -153,24 +161,21 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
             <div class="value" style="text-transform: uppercase;">${item.targetType}</div>
           </div>
           <div class="card">
-            <div class="label">Report Identifier</div>
+            <div class="label">Report Reference ID</div>
             <div class="value">${item.id}</div>
           </div>
         </div>
 
-        <div class="section-title">Assessment Explanation</div>
+        <div class="section-title">Assessment Summary</div>
         <div class="explanation">${item.explanation}</div>
 
-        <div class="section-title">Key Threat Findings</div>
-        <div style="margin-bottom: 32px;">${findingsHtml || '<div style="color: #71717a; font-size: 12px;">No structural threat findings registered.</div>'}</div>
-
-        <div class="section-title">Recommended Security Action</div>
-        <div class="card" style="background: rgba(244,63,94,0.05); border-color: rgba(244,63,94,0.2); margin-bottom: 32px;">
-          <div style="color: #f43f5e; font-weight: 700; font-size: 13px;">${item.recommendedAction || 'No action needed.'}</div>
+        <div class="section-title">Recommended Action</div>
+        <div class="card" style="background: ${statusBg}; border-color: ${statusColor}; margin-bottom: 32px;">
+          <div style="color: ${statusColor}; font-weight: 700; font-size: 13px;">${item.recommendedAction || 'No action required.'}</div>
         </div>
 
         <div class="footer">
-          <div>Official Threat Intelligence Audit • Verified by MalVision Core Engine</div>
+          <div>Verified Threat Analysis • MalVision Security</div>
           <div>https://malvision.vercel.app</div>
         </div>
 
@@ -178,7 +183,7 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
           window.onload = function() {
             setTimeout(function() {
               window.print();
-            }, 300);
+            }, 250);
           };
         </script>
       </body>
@@ -437,16 +442,15 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, use
                       </div>
                     </div>
 
-                    {/* Clean Action Buttons (Safe/Malicious text removed for clean minimalism) */}
-                    <div className="flex items-center space-x-1.5 shrink-0">
-                      {/* Download PDF Certificate Option for Every History File */}
+                    {/* Clean Action Buttons (Icon Only - No PDF text label, no Safe/Malicious text) */}
+                    <div className="flex items-center space-x-1 shrink-0">
+                      {/* Direct PDF Download Icon Button */}
                       <button
                         onClick={(e) => handleDownloadItemPdf(item, e)}
-                        className="p-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:text-rose-500 hover:border-rose-300 dark:hover:border-rose-800 transition cursor-pointer flex items-center space-x-1 text-[11px] font-semibold shadow-2xs"
+                        className="p-1.5 rounded-xl text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200/60 dark:hover:bg-neutral-800/60 transition cursor-pointer"
                         title="Download PDF Threat Report"
                       >
-                        <Download className="w-3.5 h-3.5 text-rose-500" />
-                        <span className="hidden sm:inline text-[10px]">PDF</span>
+                        <Download className="w-3.5 h-3.5" />
                       </button>
 
                       <button
