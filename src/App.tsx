@@ -9,6 +9,7 @@ import { CookiePolicy } from './pages/CookiePolicy';
 import { AuthPage } from './components/AuthPage';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { getActiveSession, createActiveSession, destroyActiveSession } from './lib/userStore';
 import type { ScannerTabId } from './types';
 
 export const AppContent: React.FC = () => {
@@ -21,18 +22,7 @@ export const AppContent: React.FC = () => {
 
   // Persistent authenticated user session state (restored automatically from localStorage on page reload)
   const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(() => {
-    try {
-      const saved = localStorage.getItem('malvision_user_session');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.email === 'string') {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.error('Error loading stored Google session:', e);
-    }
-    return null;
+    return getActiveSession();
   });
 
   const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
@@ -158,20 +148,12 @@ export const AppContent: React.FC = () => {
 
   const handleAuthSuccess = (userData: { name: string; email: string; avatar?: string; provider?: string }) => {
     setUser(userData);
-    try {
-      localStorage.setItem('malvision_user_session', JSON.stringify(userData));
-    } catch (e) {
-      console.error('Error saving user session:', e);
-    }
+    createActiveSession(userData);
   };
 
   const handleSignOut = () => {
     setUser(null);
-    try {
-      localStorage.removeItem('malvision_user_session');
-    } catch (e) {
-      console.error('Error removing user session:', e);
-    }
+    destroyActiveSession();
   };
 
   // If on login or signup view, render dedicated AuthPage without main Header/Footer
