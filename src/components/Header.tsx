@@ -525,22 +525,28 @@ export const Header: React.FC<HeaderProps> = ({
               )}
 
               <button
-                onClick={() => {
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   onOpenHistory ? onOpenHistory() : onNavigate('history');
                   setMobileMenuOpen(false);
                 }}
-                className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
               >
                 <Clock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                 <span>History</span>
               </button>
 
               <button
-                onClick={() => {
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   onOpenSettings?.('database');
                   setMobileMenuOpen(false);
                 }}
-                className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
               >
                 <Settings className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
                 <span>Settings</span>
@@ -548,22 +554,28 @@ export const Header: React.FC<HeaderProps> = ({
 
               {user ? (
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onSignOut?.();
                     setMobileMenuOpen(false);
                   }}
-                  className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition font-semibold"
+                  className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition font-semibold cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                   <span>Sign Out</span>
                 </button>
               ) : (
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onGetStarted ? onGetStarted() : onNavigate('scanner');
                     setMobileMenuOpen(false);
                   }}
-                  className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition font-semibold"
+                  className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition font-semibold cursor-pointer"
                 >
                   <User className="w-4 h-4 text-neutral-900 dark:text-white" />
                   <span>Sign In / Get Started</span>
