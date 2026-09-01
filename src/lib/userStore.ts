@@ -1,4 +1,5 @@
 import type { GoogleUserProfile } from './googleAuth';
+import { fetchRemoteUsersFromMongoDB, syncUserToMongoDB, queryRemoteUserByEmail, queryRemoteUserByGoogleSub } from './authApi';
 
 export interface UserRecord {
   id: string;
@@ -63,18 +64,18 @@ function hashPasswordWithSalt(password: string, salt: string): string {
 }
 
 /**
- * Fetches the user registry from local persistence
+ * Fetches the user registry merged with MongoDB Atlas remote database records
  */
 export function getUserRegistry(): UserRecord[] {
+  let localUsers: UserRecord[] = [];
   try {
     const raw = localStorage.getItem(REGISTRY_STORAGE_KEY);
     if (!raw) {
-      // Seed default admin / demonstration accounts securely
       const defaultSalt = generateSalt();
-      const initialUsers: UserRecord[] = [
+      localUsers = [
         {
           id: 'usr_yaseen_default',
-          normalizedEmail: 'yaseen@malvision',
+          normalizedEmail: 'yaseen@malvision.com',
           fullName: 'Yaseen Ashu',
           passwordHash: hashPasswordWithSalt('Malvision123!', defaultSalt),
           salt: defaultSalt,
@@ -83,19 +84,33 @@ export function getUserRegistry(): UserRecord[] {
           failedLoginAttempts: 0,
         },
       ];
-      localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(initialUsers));
-      return initialUsers;
+      localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(localUsers));
+    } else {
+      const parsed = JSON.parse(raw);
+      localUsers = Array.isArray(parsed) ? parsed : [];
     }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
-    console.error('Error fetching user registry:', e);
-    return [];
+    console.error('Error fetching local user registry:', e);
   }
+
+  const remoteUsers = fetchRemoteUsersFromMongoDB();
+  const map = new Map<string, UserRecord>();
+
+  // Add local users first
+  for (const u of localUsers) {
+    if (u && u.normalizedEmail) map.set(u.normalizedEmail, u);
+  }
+
+  // Add/override with MongoDB Atlas remote users
+  for (const u of remoteUsers) {
+    if (u && u.normalizedEmail) map.set(u.normalizedEmail, u);
+  }
+
+  return Array.from(map.values());
 }
 
 /**
- * Persists the updated user registry
+ * Persists the updated user registry locally and to MongoDB Atlas
  */
 function saveUserRegistry(registry: UserRecord[]): void {
   try {
@@ -111,6 +126,11 @@ function saveUserRegistry(registry: UserRecord[]): void {
 export function findUserByNormalizedEmail(email: string): UserRecord | undefined {
   const norm = normalizeIdentity(email);
   if (!norm) return undefined;
+
+  // Query MongoDB remote user store first
+  const remote = queryRemoteUserByEmail(norm);
+  if (remote) return remote;
+
   const registry = getUserRegistry();
   const exact = registry.find((u) => u.normalizedEmail === norm);
   if (exact) return exact;
@@ -128,6 +148,9 @@ export function findUserByNormalizedEmail(email: string): UserRecord | undefined
  */
 export function findUserByGoogleSub(googleSub: string): UserRecord | undefined {
   if (!googleSub) return undefined;
+  const remote = queryRemoteUserByGoogleSub(googleSub);
+  if (remote) return remote;
+
   const registry = getUserRegistry();
   return registry.find((u) => u.provider === 'google' && u.googleSub === googleSub);
 }
@@ -163,9 +186,19 @@ export function registerUserAccount(data: {
   }
 
   const registry = getUserRegistry();
+  const username = normEmail.split('@')[0];
 
-  // Enforce Unique Identity constraint
-  const existing = registry.find((u) => u.normalizedEmail === normEmail);
+  // Enforce Unique Identity constraint across local and MongoDB Atlas
+  const existing = registry.find((u) => {
+    if (u.normalizedEmail === normEmail) return true;
+    const uName = u.normalizedEmail.split('@')[0];
+    return (
+      uName === username &&
+      (u.normalizedEmail.endsWith('@malvision') || u.normalizedEmail.endsWith('@malvision.com')) &&
+      (normEmail.endsWith('@malvision') || normEmail.endsWith('@malvision.com'))
+    );
+  });
+
   if (existing) {
     return { success: false, error: 'An account already exists with this email.' };
   }
@@ -186,6 +219,7 @@ export function registerUserAccount(data: {
 
   registry.push(newUser);
   saveUserRegistry(registry);
+  syncUserToMongoDB(newUser);
 
   return { success: true, user: newUser };
 }
@@ -213,7 +247,17 @@ export function authenticateUserCredentials(
   }
 
   const registry = getUserRegistry();
-  const user = registry.find((u) => u.normalizedEmail === normEmail);
+  const username = normEmail.split('@')[0];
+
+  const user = registry.find((u) => {
+    if (u.normalizedEmail === normEmail) return true;
+    const uName = u.normalizedEmail.split('@')[0];
+    return (
+      uName === username &&
+      (u.normalizedEmail.endsWith('@malvision') || u.normalizedEmail.endsWith('@malvision.com')) &&
+      (normEmail.endsWith('@malvision') || normEmail.endsWith('@malvision.com'))
+    );
+  });
 
   // Reject non-existent accounts with generic security error (no account enumeration)
   if (!user) {
@@ -246,6 +290,7 @@ export function authenticateUserCredentials(
   user.failedLoginAttempts = 0;
   user.lockoutUntil = undefined;
   saveUserRegistry(registry);
+  syncUserToMongoDB(user);
 
   return { success: true, user };
 }
@@ -271,6 +316,7 @@ export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Use
     existingUser.provider = 'google';
     existingUser.googleSub = googleSub;
     saveUserRegistry(registry);
+    syncUserToMongoDB(existingUser);
     return existingUser;
   }
 
@@ -288,6 +334,7 @@ export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Use
 
   registry.push(newUser);
   saveUserRegistry(registry);
+  syncUserToMongoDB(newUser);
   return newUser;
 }
 
