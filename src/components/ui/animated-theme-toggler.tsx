@@ -44,6 +44,11 @@ export function AnimatedThemeToggler({
     );
 
     const transition = document.startViewTransition(() => {
+      if (nextTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
       onThemeChange?.(nextTheme);
     });
 
@@ -55,14 +60,12 @@ export function AnimatedThemeToggler({
 
       document.documentElement.animate(
         {
-          clipPath: isDark ? clipPath.reverse() : clipPath,
+          clipPath,
         },
         {
           duration,
           easing: "ease-in-out",
-          pseudoElement: isDark
-            ? "::view-transition-old(root)"
-            : "::view-transition-new(root)",
+          pseudoElement: "::view-transition-new(root)",
         }
       );
     });
