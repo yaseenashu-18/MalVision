@@ -113,10 +113,14 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       ref={headerRef}
-      className={`fixed z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+      style={{
+        transitionDuration: '500ms',
+        transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      }}
+      className={`fixed z-50 transition-all motion-reduce:transition-none ${
         isScrolled
-          ? 'top-3.5 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] md:w-[min(calc(100%-32px),1240px)] rounded-full bg-white/80 dark:bg-[#141416]/80 backdrop-blur-xl saturate-150 border border-neutral-900/10 dark:border-neutral-100/10 shadow-lg shadow-neutral-950/5 dark:shadow-black/50 py-2 px-4 sm:px-6'
-          : 'top-0 left-0 right-0 w-full bg-transparent border-b border-transparent shadow-none py-3.5 px-4 sm:px-6 lg:px-8'
+          ? 'top-3 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] md:w-[min(calc(100%-32px),1240px)] rounded-full bg-white/72 dark:bg-[#141416]/75 backdrop-blur-xl saturate-140 border border-black/8 dark:border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.07)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.4)] py-2.5 px-4 sm:px-6'
+          : 'top-0 left-0 right-0 w-full bg-transparent border-b border-transparent shadow-none py-4 px-6 lg:px-8'
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
