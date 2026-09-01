@@ -262,7 +262,7 @@ export async function registerUserAccount(data: {
   });
 
   if (existing) {
-    return { success: false, error: 'An account already exists with this email.' };
+    return { success: false, error: 'Username is already taken. Please choose a different username.' };
   }
 
   const salt = generateSalt();
@@ -300,7 +300,7 @@ export async function authenticateUserCredentials(
   const normEmail = normalizeIdentity(emailStr);
 
   if (!normEmail || !passwordStr) {
-    return { success: false, error: 'Invalid email or password.' };
+    return { success: false, error: 'Please enter your email and password.' };
   }
 
   // CRITICAL GMAIL RULE: Rejects manual password login for @gmail.com addresses
@@ -328,9 +328,12 @@ export async function authenticateUserCredentials(
       );
     });
 
-  // Reject non-existent accounts with generic security error
+  // Reject non-existent accounts with clear feedback
   if (!user || user.authVersion !== CURRENT_AUTH_VERSION) {
-    return { success: false, error: 'Invalid email or password.' };
+    return {
+      success: false,
+      error: 'No account found with this email address. Please check your email or create a new account.',
+    };
   }
 
   // Check rate-limiting lockout
@@ -352,7 +355,7 @@ export async function authenticateUserCredentials(
       user.lockoutUntil = Date.now() + 15 * 60 * 1000;
     }
     saveUserRegistry(registry);
-    return { success: false, error: 'Invalid email or password.' };
+    return { success: false, error: 'Incorrect password. Please try again.' };
   }
 
   // Success: Reset rate limiting counters

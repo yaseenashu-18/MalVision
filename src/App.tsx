@@ -104,6 +104,12 @@ export const AppContent: React.FC = () => {
       return;
     }
 
+    if (cleanPage === 'settings' || cleanPage === 'profile') {
+      setSettingsTab(cleanPage === 'profile' ? 'profile' : 'database');
+      setSettingsModalOpen(true);
+      return;
+    }
+
     if (cleanPage === 'privacy' || cleanPage === 'terms' || cleanPage === 'cookies') {
       setCurrentPage(cleanPage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -168,6 +174,13 @@ export const AppContent: React.FC = () => {
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
       if (hash === 'login' || hash === 'signup' || hash === 'privacy' || hash === 'terms' || hash === 'cookies') {
         setCurrentPage(hash);
+      } else if (hash === 'history') {
+        setHistoryModalOpen(true);
+        setCurrentPage('dashboard');
+      } else if (hash === 'settings' || hash === 'profile') {
+        setSettingsTab(hash === 'profile' ? 'profile' : 'database');
+        setSettingsModalOpen(true);
+        setCurrentPage('dashboard');
       } else if (hash === 'scanner' || hash === 'features' || hash === 'about') {
         setCurrentPage('dashboard');
         setActiveScrollSection(hash);
