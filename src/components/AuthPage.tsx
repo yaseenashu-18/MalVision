@@ -54,7 +54,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setAuthError(null);
     try {
       const googleProfile = await authenticateWithGoogle();
-      const userRecord = authenticateGoogleAccount(googleProfile);
+      const userRecord = await authenticateGoogleAccount(googleProfile);
 
       setSuccessNotice(`Authenticated as ${userRecord.fullName}!`);
       setTimeout(() => {
@@ -89,7 +89,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setSuccessNotice(null);
@@ -144,8 +144,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         return;
       }
 
-      // Register new unique account in userStore & MongoDB Atlas
-      const result = registerUserAccount({
+      // Register new unique account in userStore & MongoDB Atlas (async)
+      const result = await registerUserAccount({
         email: formattedEmail,
         password,
         fullName: fullName.trim(),
@@ -169,8 +169,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         onNavigate('dashboard');
       }, 400);
     } else {
-      // Login Mode: Authenticate existing account credentials ONLY
-      const result = authenticateUserCredentials(formattedEmail, password);
+      // Login Mode: Authenticate existing account credentials ONLY (async cloud verification)
+      const result = await authenticateUserCredentials(formattedEmail, password);
 
       if (!result.success) {
         setLoading(false);

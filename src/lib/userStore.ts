@@ -1,5 +1,11 @@
 import type { GoogleUserProfile } from './googleAuth';
-import { fetchRemoteUsersFromMongoDB, syncUserToMongoDB, queryRemoteUserByEmail, queryRemoteUserByGoogleSub } from './authApi';
+import {
+  fetchRemoteUsersFromMongoDB,
+  fetchRemoteUsersFromMongoDBAsync,
+  syncUserToMongoDB,
+  queryRemoteUserByEmail,
+  queryRemoteUserByGoogleSub,
+} from './authApi';
 
 export interface UserRecord {
   id: string;
@@ -176,13 +182,13 @@ function saveUserRegistry(registry: UserRecord[]): void {
 }
 
 /**
- * Finds a user record by normalized email
+ * Finds a user record by normalized email (async server lookup)
  */
-export function findUserByNormalizedEmail(email: string): UserRecord | undefined {
+export async function findUserByNormalizedEmail(email: string): Promise<UserRecord | undefined> {
   const norm = normalizeIdentity(email);
   if (!norm) return undefined;
 
-  const remote = queryRemoteUserByEmail(norm);
+  const remote = await queryRemoteUserByEmail(norm);
   if (remote && remote.authVersion === CURRENT_AUTH_VERSION) return remote;
 
   const registry = getUserRegistry();
@@ -198,11 +204,11 @@ export function findUserByNormalizedEmail(email: string): UserRecord | undefined
 }
 
 /**
- * Finds a user record by Google Provider Subject ID
+ * Finds a user record by Google Provider Subject ID (async server lookup)
  */
-export function findUserByGoogleSub(googleSub: string): UserRecord | undefined {
+export async function findUserByGoogleSub(googleSub: string): Promise<UserRecord | undefined> {
   if (!googleSub) return undefined;
-  const remote = queryRemoteUserByGoogleSub(googleSub);
+  const remote = await queryRemoteUserByGoogleSub(googleSub);
   if (remote && remote.authVersion === CURRENT_AUTH_VERSION) return remote;
 
   const registry = getUserRegistry();
@@ -210,13 +216,13 @@ export function findUserByGoogleSub(googleSub: string): UserRecord | undefined {
 }
 
 /**
- * Register a new UNIQUE email/password user account under CURRENT_AUTH_VERSION = 2
+ * Register a new UNIQUE email/password user account under CURRENT_AUTH_VERSION = 2 (async cloud sync)
  */
-export function registerUserAccount(data: {
+export async function registerUserAccount(data: {
   email: string;
   password: string;
   fullName: string;
-}): { success: boolean; error?: string; user?: UserRecord } {
+}): Promise<{ success: boolean; error?: string; user?: UserRecord }> {
   const normEmail = normalizeIdentity(data.email);
   
   if (!normEmail) {
@@ -239,6 +245,8 @@ export function registerUserAccount(data: {
     return { success: false, error: 'Password must be at least 8 characters long.' };
   }
 
+  // Perform live cloud network lookup to check uniqueness across all devices
+  await fetchRemoteUsersFromMongoDBAsync();
   const registry = getUserRegistry();
   const username = normEmail.split('@')[0];
 
@@ -274,19 +282,21 @@ export function registerUserAccount(data: {
 
   registry.push(newUser);
   saveUserRegistry(registry);
-  syncUserToMongoDB(newUser);
+  
+  // Await HTTPS sync to central cloud database
+  await syncUserToMongoDB(newUser);
 
   return { success: true, user: newUser };
 }
 
 /**
- * Authenticates credentials for an existing account under CURRENT_AUTH_VERSION = 2.
+ * Authenticates credentials for an existing account under CURRENT_AUTH_VERSION = 2 (async cloud verification).
  * NEVER creates an account during login.
  */
-export function authenticateUserCredentials(
+export async function authenticateUserCredentials(
   emailStr: string,
   passwordStr: string
-): { success: boolean; error?: string; user?: UserRecord } {
+): Promise<{ success: boolean; error?: string; user?: UserRecord }> {
   const normEmail = normalizeIdentity(emailStr);
 
   if (!normEmail || !passwordStr) {
@@ -301,18 +311,22 @@ export function authenticateUserCredentials(
     };
   }
 
+  // Await live network lookup from central cloud database server over HTTPS
+  const remoteUser = await queryRemoteUserByEmail(normEmail);
   const registry = getUserRegistry();
   const username = normEmail.split('@')[0];
 
-  const user = registry.find((u) => {
-    if (u.normalizedEmail === normEmail) return true;
-    const uName = u.normalizedEmail.split('@')[0];
-    return (
-      uName === username &&
-      (u.normalizedEmail.endsWith('@malvision') || u.normalizedEmail.endsWith('@malvision.com')) &&
-      (normEmail.endsWith('@malvision') || normEmail.endsWith('@malvision.com'))
-    );
-  });
+  const user =
+    remoteUser ||
+    registry.find((u) => {
+      if (u.normalizedEmail === normEmail) return true;
+      const uName = u.normalizedEmail.split('@')[0];
+      return (
+        uName === username &&
+        (u.normalizedEmail.endsWith('@malvision') || u.normalizedEmail.endsWith('@malvision.com')) &&
+        (normEmail.endsWith('@malvision') || normEmail.endsWith('@malvision.com'))
+      );
+    });
 
   // Reject non-existent accounts with generic security error
   if (!user || user.authVersion !== CURRENT_AUTH_VERSION) {
@@ -345,22 +359,25 @@ export function authenticateUserCredentials(
   user.failedLoginAttempts = 0;
   user.lockoutUntil = undefined;
   saveUserRegistry(registry);
-  syncUserToMongoDB(user);
+  await syncUserToMongoDB(user);
 
   return { success: true, user };
 }
 
 /**
- * Real Google OAuth Authentication / Registration under CURRENT_AUTH_VERSION = 2
+ * Real Google OAuth Authentication / Registration under CURRENT_AUTH_VERSION = 2 (async cloud sync)
  */
-export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): UserRecord {
+export async function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Promise<UserRecord> {
   const normEmail = normalizeIdentity(googleProfile.email);
   const googleSub = googleProfile.sub || `g_${normEmail}`;
+  
+  // Query cloud database over HTTPS
+  const remoteUser = await queryRemoteUserByGoogleSub(googleSub);
   const registry = getUserRegistry();
 
-  let existingUser = registry.find(
-    (u) => (u.googleSub && u.googleSub === googleSub) || u.normalizedEmail === normEmail
-  );
+  let existingUser =
+    remoteUser ||
+    registry.find((u) => (u.googleSub && u.googleSub === googleSub) || u.normalizedEmail === normEmail);
 
   if (existingUser) {
     existingUser.fullName = googleProfile.name || existingUser.fullName;
@@ -369,7 +386,7 @@ export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Use
     existingUser.googleSub = googleSub;
     existingUser.authVersion = CURRENT_AUTH_VERSION;
     saveUserRegistry(registry);
-    syncUserToMongoDB(existingUser);
+    await syncUserToMongoDB(existingUser);
     return existingUser;
   }
 
@@ -387,7 +404,7 @@ export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Use
 
   registry.push(newUser);
   saveUserRegistry(registry);
-  syncUserToMongoDB(newUser);
+  await syncUserToMongoDB(newUser);
   return newUser;
 }
 

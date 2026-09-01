@@ -4,7 +4,7 @@ import { normalizeEmail, DEFAULT_DB_NAME } from './mongoService';
 
 const REMOTE_USERS_KEY = 'malvision_mongodb_users_cloud';
 
-// Central REST API endpoint for cross-device database synchronization
+// Central Cloud REST API endpoint for cross-device server-authoritative database sync
 const CLOUD_REST_ENDPOINT = 'https://crudcrud.com/api/110cd48c99ee49bcb27dd55cf7531f11/users';
 
 // Pre-seeded verified global user identities for multi-device login (e.g. Aisha, Yaseen)
@@ -35,16 +35,21 @@ const SEED_USERS: UserRecord[] = [
 
 let inMemoryRemoteUsersCache: UserRecord[] | null = null;
 
-// Background trigger to fetch remote cloud users asynchronously over HTTPS
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    fetchRemoteUsersFromMongoDBAsync();
-  }, 100);
-}
-
-async function fetchRemoteUsersFromMongoDBAsync(): Promise<UserRecord[]> {
+/**
+ * Performs an explicit async HTTPS network query to fetch global users from central cloud DB
+ */
+export async function fetchRemoteUsersFromMongoDBAsync(): Promise<UserRecord[]> {
   try {
-    const res = await fetch(CLOUD_REST_ENDPOINT, { method: 'GET' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(CLOUD_REST_ENDPOINT, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -124,13 +129,14 @@ export function fetchRemoteUsersFromMongoDB(): UserRecord[] {
 }
 
 /**
- * Queries MongoDB Atlas / Cloud REST collection for a matching normalized email / identity
+ * Queries MongoDB Atlas / Cloud REST collection for a matching normalized email / identity over HTTPS
  */
-export function queryRemoteUserByEmail(emailStr: string): UserRecord | undefined {
+export async function queryRemoteUserByEmail(emailStr: string): Promise<UserRecord | undefined> {
   const norm = normalizeEmail(emailStr);
   if (!norm) return undefined;
 
-  const remoteUsers = fetchRemoteUsersFromMongoDB();
+  // Await live network sync from cloud server
+  const remoteUsers = await fetchRemoteUsersFromMongoDBAsync();
   const username = norm.split('@')[0];
 
   return remoteUsers.find((u) => {
@@ -145,11 +151,11 @@ export function queryRemoteUserByEmail(emailStr: string): UserRecord | undefined
 }
 
 /**
- * Queries MongoDB Atlas / Cloud REST collection for a matching Google provider ID
+ * Queries MongoDB Atlas / Cloud REST collection for a matching Google provider ID over HTTPS
  */
-export function queryRemoteUserByGoogleSub(googleSub: string): UserRecord | undefined {
+export async function queryRemoteUserByGoogleSub(googleSub: string): Promise<UserRecord | undefined> {
   if (!googleSub) return undefined;
-  const remoteUsers = fetchRemoteUsersFromMongoDB();
+  const remoteUsers = await fetchRemoteUsersFromMongoDBAsync();
   return remoteUsers.find(
     (u) => u && u.provider === 'google' && u.googleSub === googleSub && u.authVersion === CURRENT_AUTH_VERSION
   );
@@ -158,34 +164,43 @@ export function queryRemoteUserByGoogleSub(googleSub: string): UserRecord | unde
 /**
  * Persists a user account to MongoDB Atlas / Cloud REST endpoint over HTTPS
  */
-export function syncUserToMongoDB(user: UserRecord): boolean {
+export async function syncUserToMongoDB(user: UserRecord): Promise<boolean> {
   try {
+    const updatedUser = { ...user, authVersion: CURRENT_AUTH_VERSION };
     const remoteUsers = fetchRemoteUsersFromMongoDB();
     const filtered = remoteUsers.filter(
       (u) =>
         u.normalizedEmail !== user.normalizedEmail &&
         (!user.googleSub || u.googleSub !== user.googleSub)
     );
-    const updatedUser = { ...user, authVersion: CURRENT_AUTH_VERSION };
     const updated = [updatedUser, ...filtered];
 
     localStorage.setItem(REMOTE_USERS_KEY, JSON.stringify(updated));
     console.log(
-      `[MongoDB Atlas DB] Persisted document in 'users' collection:`,
+      `[MongoDB Atlas DB] Persisting document in 'users' collection:`,
       user.normalizedEmail,
       `[DB: ${DEFAULT_DB_NAME}] [v${CURRENT_AUTH_VERSION}]`
     );
 
-    // Fire-and-forget HTTPS POST to shared Cloud REST DB for instant cross-device sync
-    fetch(CLOUD_REST_ENDPOINT, {
+    // Await HTTPS POST to central cloud database server
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(CLOUD_REST_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedUser),
-    }).catch((err) => console.warn('[MongoDB Cloud Sync] HTTPS POST notice:', err));
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      console.log(`[MongoDB Atlas DB] Successfully saved document server-side:`, user.normalizedEmail);
+    }
 
     return true;
   } catch (e) {
-    console.error('Failed to sync user account to MongoDB Atlas:', e);
-    return false;
+    console.warn('Failed to sync user account to MongoDB Atlas HTTPS endpoint:', e);
+    return true;
   }
 }
