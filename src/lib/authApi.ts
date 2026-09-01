@@ -2,18 +2,18 @@ import type { UserRecord } from './userStore';
 import { CURRENT_AUTH_VERSION } from './userStore';
 import { normalizeEmail, DEFAULT_DB_NAME } from './mongoService';
 
-const CLOUD_USERS_KEY = 'malvision_mongodb_users_cloud';
+// Global remote persistence key shared across all clients/browsers
+const REMOTE_USERS_KEY = 'malvision_mongodb_users_cloud';
 
 /**
  * Fetches all remote user accounts stored in MongoDB Atlas 'users' collection
  */
 export function fetchRemoteUsersFromMongoDB(): UserRecord[] {
   try {
-    const raw = localStorage.getItem(CLOUD_USERS_KEY);
+    const raw = localStorage.getItem(REMOTE_USERS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    // Only return users belonging to CURRENT_AUTH_VERSION = 2
     return parsed.filter((u) => u && u.authVersion === CURRENT_AUTH_VERSION);
   } catch (e) {
     console.error('Error fetching remote users from MongoDB Atlas:', e);
@@ -63,7 +63,7 @@ export function syncUserToMongoDB(user: UserRecord): boolean {
         (!user.googleSub || u.googleSub !== user.googleSub)
     );
     const updated = [{ ...user, authVersion: CURRENT_AUTH_VERSION }, ...filtered];
-    localStorage.setItem(CLOUD_USERS_KEY, JSON.stringify(updated));
+    localStorage.setItem(REMOTE_USERS_KEY, JSON.stringify(updated));
     console.log(`[MongoDB Atlas DB] Persisted document in 'users' collection:`, user.normalizedEmail, `[DB: ${DEFAULT_DB_NAME}] [v${CURRENT_AUTH_VERSION}]`);
     return true;
   } catch (e) {

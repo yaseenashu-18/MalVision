@@ -66,6 +66,23 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('malvision_logout', handleGlobalLogout);
   }, []);
 
+  // Live Cross-Device Scan History Sync polling
+  useEffect(() => {
+    if (!user || !user.email) return;
+
+    const handleFocusOrPoll = () => {
+      window.dispatchEvent(new CustomEvent('malvision_history_poll', { detail: { email: user.email } }));
+    };
+
+    const interval = setInterval(handleFocusOrPoll, 5000);
+    window.addEventListener('focus', handleFocusOrPoll);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocusOrPoll);
+    };
+  }, [user]);
+
   const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
     setCurrentPage(mode);
     window.scrollTo({ top: 0, behavior: 'smooth' });

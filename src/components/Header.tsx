@@ -253,7 +253,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onOpenSettings?.('profile');
                       setProfileDropdownOpen(false);
                     }}
@@ -264,7 +267,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onOpenHistory ? onOpenHistory() : onNavigate('history');
                       setProfileDropdownOpen(false);
                     }}
@@ -275,7 +281,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onOpenSettings?.('database');
                       setProfileDropdownOpen(false);
                     }}
@@ -312,17 +321,22 @@ export const Header: React.FC<HeaderProps> = ({
             /* Get Started Button on Mobile Header when not authenticated */
             <button
               onClick={onGetStarted ? onGetStarted : () => onNavigate('scanner')}
-              className="px-3 py-1.5 text-xs font-semibold rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
+              className="px-3 py-1.5 text-xs font-semibold rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-xs whitespace-nowrap"
             >
               Get Started
             </button>
           ) : (
-            /* Compact Profile Button on Mobile Header when authenticated */
+            /* Profile Dropdown Trigger on Mobile Header when authenticated */
             <div className="relative" ref={profileDropdownRef}>
               <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-neutral-100/90 dark:bg-neutral-800/90 text-neutral-800 dark:text-neutral-200 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer active:scale-95"
-                aria-label="Profile menu"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                }}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-neutral-100/90 dark:bg-neutral-800/90 text-neutral-800 dark:text-neutral-200 border border-neutral-200/60 dark:border-neutral-700/60 transition cursor-pointer"
+                aria-label="Mobile Profile menu"
                 aria-expanded={profileDropdownOpen}
               >
                 <div className="w-4 h-4 rounded-full overflow-hidden bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-extrabold text-[9px] flex items-center justify-center shrink-0">
@@ -332,8 +346,8 @@ export const Header: React.FC<HeaderProps> = ({
                     getInitials(user.name)
                   )}
                 </div>
-                <span className="text-[11px] font-semibold max-w-[70px] truncate">
-                  {user.name.split(' ')[0]}
+                <span className="text-[11px] font-semibold max-w-[80px] truncate">
+                  {user.name}
                 </span>
                 <ChevronDown className={`w-3 h-3 opacity-70 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -351,7 +365,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onOpenSettings?.('profile');
                       setProfileDropdownOpen(false);
                     }}
@@ -362,7 +379,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onOpenHistory ? onOpenHistory() : onNavigate('history');
                       setProfileDropdownOpen(false);
                     }}
@@ -373,7 +393,10 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onOpenSettings?.('database');
                       setProfileDropdownOpen(false);
                     }}
@@ -386,7 +409,10 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="border-t border-neutral-200/80 dark:border-neutral-800" />
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onSignOut?.();
                       setProfileDropdownOpen(false);
                     }}
