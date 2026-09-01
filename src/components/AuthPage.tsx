@@ -9,6 +9,7 @@ import {
   authenticateUserCredentials,
   authenticateGoogleAccount,
   createActiveSession,
+  validateUsernameFormat,
 } from '../lib/userStore';
 
 interface AuthPageProps {
@@ -44,6 +45,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setMode(initialMode);
     setAuthError(null);
     setSuccessNotice(null);
+    setEmailInput('');
   }, [initialMode]);
 
   const handleGoogleSignIn = async () => {
@@ -77,33 +79,40 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
+  const handleUsernameChange = (val: string) => {
+    if (mode === 'signup') {
+      // Auto-lowercase inputs
+      setEmailInput(val.toLowerCase());
+    } else {
+      setEmailInput(val);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setSuccessNotice(null);
 
-    const rawInput = emailInput.trim().toLowerCase();
+    let formattedEmail = '';
 
-    if (!rawInput) {
-      setAuthError({ message: mode === 'signup' ? 'Please enter a username.' : 'Please enter your username or email.' });
-      return;
-    }
-
-    if (!password) {
-      setAuthError({ message: 'Please enter your password.' });
-      return;
-    }
-
-    let formattedEmail = rawInput;
     if (mode === 'signup') {
-      const cleanUsername = rawInput.replace(/@.*$/, '').trim();
-      if (!cleanUsername) {
-        setAuthError({ message: 'Please enter a valid username.' });
+      // Validate strict username format [a-z0-9_]+
+      const usernameCheck = validateUsernameFormat(emailInput);
+      if (!usernameCheck.valid) {
+        setAuthError({ message: usernameCheck.error || 'Enter a username only.' });
         return;
       }
-      formattedEmail = `${cleanUsername}@malvision.com`;
+      formattedEmail = `${usernameCheck.cleanUsername}@malvision.com`;
     } else {
-      if (!rawInput.includes('@')) {
+      const rawInput = emailInput.trim().toLowerCase();
+      if (!rawInput) {
+        setAuthError({ message: 'Please enter your username or email.' });
+        return;
+      }
+
+      if (rawInput.includes('@')) {
+        formattedEmail = rawInput;
+      } else {
         formattedEmail = `${rawInput}@malvision.com`;
       }
     }
@@ -111,6 +120,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     // Gmail Policy Check: Rejects manual password auth for Gmail
     if (formattedEmail.endsWith('@gmail.com')) {
       setAuthError({ message: 'Please continue with Google to use a Gmail account.' });
+      return;
+    }
+
+    if (!password) {
+      setAuthError({ message: 'Please enter your password.' });
       return;
     }
 
@@ -307,7 +321,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   required
                   autoComplete={mode === 'signup' ? 'username' : 'email'}
                   value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
+                  onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder={mode === 'signup' ? 'Enter username' : 'username@malvision.com'}
                   className={`w-full pl-9 ${mode === 'signup' ? 'pr-28' : 'pr-3'} py-2 text-xs rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:border-neutral-900 dark:focus:border-white transition`}
                 />

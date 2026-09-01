@@ -28,6 +28,29 @@ export function normalizeIdentity(emailStr: string): string {
 }
 
 /**
+ * Validates strict username format [a-z0-9_]+
+ */
+export function validateUsernameFormat(usernameStr: string): { valid: boolean; error?: string; cleanUsername?: string } {
+  if (!usernameStr) {
+    return { valid: false, error: 'Please enter a username.' };
+  }
+
+  const clean = usernameStr.trim().toLowerCase();
+
+  // Rejects @, .com, domains, spaces, slashes
+  if (clean.includes('@') || clean.includes('.com') || clean.includes(' ') || clean.includes('/') || clean.includes('\\')) {
+    return { valid: false, error: 'Enter a username only.' };
+  }
+
+  const validRegex = /^[a-z0-9_]+$/;
+  if (!validRegex.test(clean)) {
+    return { valid: false, error: 'Enter a username only.' };
+  }
+
+  return { valid: true, cleanUsername: clean };
+}
+
+/**
  * Simple, secure pseudo-random salt generator for browser crypto
  */
 function generateSalt(): string {
@@ -386,8 +409,14 @@ export function getActiveSession(): {
 }
 
 /**
- * Destroys active session
+ * Destroys active session and invalidates state
  */
 export function destroyActiveSession() {
-  localStorage.removeItem(SESSION_STORAGE_KEY);
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.clear();
+  } catch (e) {
+    console.error('Error destroying session:', e);
+  }
 }
