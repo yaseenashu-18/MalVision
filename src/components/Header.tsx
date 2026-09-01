@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
       }}
       className={`fixed z-50 transition-all motion-reduce:transition-none ${
         isScrolled
-          ? 'top-3 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] md:w-[min(calc(100%-32px),1240px)] rounded-full bg-white/72 dark:bg-[#141416]/75 backdrop-blur-xl saturate-140 border border-black/8 dark:border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.07)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.4)] py-2.5 px-4 sm:px-6'
+          ? 'top-3 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-20px)] md:w-[min(calc(100%-32px),1320px)] rounded-[22px] sm:rounded-[24px] bg-white/72 dark:bg-[#141416]/75 backdrop-blur-xl saturate-140 border border-black/8 dark:border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.07)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.4)] py-2.5 px-4 sm:px-6'
           : 'top-0 left-0 right-0 w-full bg-transparent border-b border-transparent shadow-none py-4 px-6 lg:px-8'
       }`}
     >
@@ -127,21 +127,27 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left: Balanced Brand Lockup (Logo + Wordmark) */}
         <button
           onClick={() => onNavigate('dashboard')}
-          className="flex items-center space-x-2.5 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1 shrink-0"
+          className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1 shrink-0"
           aria-label="MalVision Home"
         >
           <img
             src={malvisionLogoSvg}
             alt="MalVision Logo"
-            className="h-7 sm:h-8 w-auto object-contain dark:invert transition-transform duration-200 group-hover:scale-105"
+            className="h-6 sm:h-7 w-auto object-contain dark:invert transition-transform duration-200 group-hover:scale-105"
           />
           <span className="font-bold text-lg sm:text-xl tracking-tight text-neutral-900 dark:text-white leading-none">
             MalVision
           </span>
         </button>
 
-        {/* Center: Sliding Desktop Navigation (>= 768px) */}
-        <nav className="hidden md:flex items-center relative bg-neutral-200/50 dark:bg-neutral-800/50 p-1 rounded-full border border-neutral-300/40 dark:border-neutral-700/40 backdrop-blur-xs">
+        {/* Center: Desktop Navigation (>= 768px) - Clean & unencapsulated at top */}
+        <nav
+          className={`hidden md:flex items-center relative transition-all duration-300 ${
+            isScrolled
+              ? 'bg-neutral-200/50 dark:bg-neutral-800/50 p-1 rounded-full border border-neutral-300/40 dark:border-neutral-700/40 backdrop-blur-xs'
+              : 'bg-transparent p-0 border-none space-x-1'
+          }`}
+        >
           <button
             ref={dashRef}
             onClick={() => onNavigate('dashboard')}
@@ -187,14 +193,16 @@ export const Header: React.FC<HeaderProps> = ({
             About
           </button>
 
-          {/* Active Tab Sliding Pill Indicator */}
-          <div
-            className="absolute top-1 bottom-1 bg-white dark:bg-neutral-900 rounded-full shadow-xs transition-all duration-300 ease-out z-0"
-            style={{
-              left: `${indicatorStyle.left}px`,
-              width: `${indicatorStyle.width}px`,
-            }}
-          />
+          {/* Active Tab Sliding Pill Indicator (visible when scrolled or active) */}
+          {isScrolled && (
+            <div
+              className="absolute top-1 bottom-1 bg-white dark:bg-neutral-900 rounded-full shadow-xs transition-all duration-300 ease-out z-0"
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+              }}
+            />
+          )}
         </nav>
 
         {/* Right Tools (Desktop): Appearance -> Get Started (when !user) OR Profile Dropdown (when user) */}
