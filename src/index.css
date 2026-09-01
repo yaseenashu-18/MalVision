@@ -86,15 +86,18 @@
 }
 
 /* View Transitions API for Magic UI Animated Theme Toggler */
-::view-transition-old(root),
-::view-transition-new(root) {
+html[data-magicui-theme-vt="active"]::view-transition-old(root),
+html[data-magicui-theme-vt="active"]::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
 }
-::view-transition-old(root) {
+
+html[data-magicui-theme-vt="active"]::view-transition-old(root) {
   z-index: 1;
 }
-::view-transition-new(root) {
+
+html[data-magicui-theme-vt="active"]::view-transition-new(root) {
   z-index: 9999;
+  clip-path: var(--magicui-theme-vt-clip-from);
 }
 
