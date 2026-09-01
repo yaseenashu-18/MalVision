@@ -4,7 +4,7 @@ export interface GoogleUserProfile {
   avatar?: string;
   sub?: string;
   emailVerified?: boolean;
-  provider: 'google';
+  provider: 'google' | 'email';
 }
 
 declare global {

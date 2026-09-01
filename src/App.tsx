@@ -6,7 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
 import { CookiePolicy } from './pages/CookiePolicy';
-import { AuthModal } from './components/AuthModal';
+import { AuthPage } from './components/AuthPage';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
 import type { ScannerTabId } from './types';
@@ -15,7 +15,6 @@ export const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [activeScrollSection, setActiveScrollSection] = useState<string>('dashboard');
   const [scannerTab, setScannerTab] = useState<ScannerTabId>('file-scan');
-  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
@@ -37,16 +36,10 @@ export const AppContent: React.FC = () => {
   });
 
   const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
-    setAuthModalOpen(true);
+    setCurrentPage(mode);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (window.location.hash !== `#/${mode}`) {
       window.history.pushState(null, '', `#/${mode}`);
-    }
-  };
-
-  const handleCloseAuth = () => {
-    setAuthModalOpen(false);
-    if (window.location.hash === '#/login' || window.location.hash === '#/signup') {
-      window.history.pushState(null, '', '#/home');
     }
   };
 
@@ -110,59 +103,52 @@ export const AppContent: React.FC = () => {
       }
     } else if (cleanPage === 'about') {
       setTimeout(() => {
-        const el = document.querySelector('footer');
+        const el = document.getElementById('about-section');
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
+          const yOffset = -80;
+          const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
         }
       }, 50);
       setActiveScrollSection('about');
+      if (window.location.hash !== '#/about') {
+        window.history.pushState(null, '', '#/about');
+      }
     }
   };
 
-  // URL Hash router listener on load and hash change
+  // Sync hash routing on initial load and popstate
   useEffect(() => {
-    const handleHashRouting = () => {
+    const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      if (hash) {
-        handleNavigate(hash);
-      }
-    };
-
-    handleHashRouting();
-    window.addEventListener('hashchange', handleHashRouting);
-    return () => window.removeEventListener('hashchange', handleHashRouting);
-  }, []);
-
-  // Track active section dynamically when on main dashboard
-  useEffect(() => {
-    if (currentPage !== 'dashboard') return;
-
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200;
-      const scannerEl = document.getElementById('threat-scanner-section');
-      const featuresEl = document.getElementById('features-section');
-
-      const isBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 150;
-
-      if (isBottom) {
-        setActiveScrollSection('about');
-      } else if (featuresEl && scrollPosition >= featuresEl.offsetTop) {
-        setActiveScrollSection('features');
-      } else if (scannerEl && scrollPosition >= scannerEl.offsetTop) {
-        setActiveScrollSection('scanner');
+      if (hash === 'login' || hash === 'signup' || hash === 'privacy' || hash === 'terms' || hash === 'cookies') {
+        setCurrentPage(hash);
+      } else if (hash === 'scanner' || hash === 'features' || hash === 'about') {
+        setCurrentPage('dashboard');
+        setActiveScrollSection(hash);
+        setTimeout(() => {
+          const el = document.getElementById(`${hash}-section`);
+          if (el) {
+            const yOffset = -80;
+            const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        }, 100);
       } else {
+        setCurrentPage('dashboard');
         setActiveScrollSection('dashboard');
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentPage]);
+    handleHashChange();
+    window.addEventListener('popstate', handleHashChange);
+    return () => window.removeEventListener('popstate', handleHashChange);
+  }, []);
 
   const handleScannerTabChange = (tab: ScannerTabId) => {
     setScannerTab(tab);
+    setCurrentPage('dashboard');
+    setActiveScrollSection('scanner');
   };
 
   const handleOpenSettings = (tab: 'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans' = 'database') => {
@@ -175,7 +161,7 @@ export const AppContent: React.FC = () => {
     try {
       localStorage.setItem('malvision_user_session', JSON.stringify(userData));
     } catch (e) {
-      console.error('Error saving Google user session:', e);
+      console.error('Error saving user session:', e);
     }
   };
 
@@ -184,9 +170,30 @@ export const AppContent: React.FC = () => {
     try {
       localStorage.removeItem('malvision_user_session');
     } catch (e) {
-      console.error('Error removing Google user session:', e);
+      console.error('Error removing user session:', e);
     }
   };
+
+  // If on login or signup view, render dedicated AuthPage without main Header/Footer
+  if (currentPage === 'login' || currentPage === 'signup') {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-[#0a0a0c]">
+        <AuthPage
+          initialMode={currentPage as 'login' | 'signup'}
+          onNavigate={handleNavigate}
+          onAuthSuccess={handleAuthSuccess}
+        />
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={settingsModalOpen}
+          onClose={() => setSettingsModalOpen(false)}
+          initialTab={settingsTab}
+          user={user}
+          onSignOut={handleSignOut}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-warm-neutral text-neutral-900 dark:text-neutral-100 transition-colors duration-200">
@@ -219,16 +226,8 @@ export const AppContent: React.FC = () => {
         )}
       </div>
 
-      {/* Universal Footer Component present across all views */}
+      {/* Universal Footer Component present across main views */}
       <Footer onNavigate={handleNavigate} />
-
-      {/* Login / Create Account Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={handleCloseAuth}
-        initialMode="signup"
-        onAuthSuccess={handleAuthSuccess}
-      />
 
       {/* Dedicated History Modal */}
       <HistoryModal
