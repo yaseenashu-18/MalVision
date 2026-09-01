@@ -7,32 +7,6 @@ const REMOTE_USERS_KEY = 'malvision_mongodb_users_cloud';
 // Central Cloud REST API endpoint for cross-device server-authoritative database sync
 const CLOUD_REST_ENDPOINT = 'https://crudcrud.com/api/110cd48c99ee49bcb27dd55cf7531f11/users';
 
-// Pre-seeded verified global user identities for multi-device login (e.g. Aisha, Yaseen)
-const SEED_USERS: UserRecord[] = [
-  {
-    id: 'usr_v2_aisha18',
-    normalizedEmail: 'aisha18@malvision.com',
-    fullName: 'Aisha',
-    salt: 'aisha_salt_2026',
-    passwordHash: 'pbkdf2_sha256$10000$aisha_salt_2026$5959ace0633bfac3',
-    provider: 'email',
-    createdAt: new Date().toISOString(),
-    failedLoginAttempts: 0,
-    authVersion: CURRENT_AUTH_VERSION,
-  },
-  {
-    id: 'usr_v2_yaseenashu',
-    normalizedEmail: 'yaseenashu@malvision.com',
-    fullName: 'Yaseen Ashu',
-    salt: 'yaseen_salt_2026',
-    passwordHash: 'pbkdf2_sha256$10000$yaseen_salt_2026$5826a2334ca47bb6',
-    provider: 'email',
-    createdAt: new Date().toISOString(),
-    failedLoginAttempts: 0,
-    authVersion: CURRENT_AUTH_VERSION,
-  },
-];
-
 let inMemoryRemoteUsersCache: UserRecord[] | null = null;
 
 /**
@@ -103,11 +77,6 @@ export function fetchRemoteUsersFromMongoDB(): UserRecord[] {
   }
 
   const map = new Map<string, UserRecord>();
-
-  // Add seed users first
-  for (const s of SEED_USERS) {
-    map.set(s.normalizedEmail, s);
-  }
 
   // Merge local remote cache
   for (const u of localRemote) {
