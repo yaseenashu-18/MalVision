@@ -112,7 +112,15 @@ export function findUserByNormalizedEmail(email: string): UserRecord | undefined
   const norm = normalizeIdentity(email);
   if (!norm) return undefined;
   const registry = getUserRegistry();
-  return registry.find((u) => u.normalizedEmail === norm);
+  const exact = registry.find((u) => u.normalizedEmail === norm);
+  if (exact) return exact;
+
+  const username = norm.split('@')[0];
+  return registry.find(
+    (u) =>
+      u.normalizedEmail.split('@')[0] === username &&
+      (u.normalizedEmail.endsWith('@malvision') || u.normalizedEmail.endsWith('@malvision.com'))
+  );
 }
 
 /**

@@ -26,7 +26,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   
   // Form fields
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -82,10 +82,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setAuthError(null);
     setSuccessNotice(null);
 
-    const normEmail = email.trim().toLowerCase();
+    const rawInput = emailInput.trim().toLowerCase();
 
-    if (!normEmail || !normEmail.includes('@')) {
-      setAuthError({ message: 'Please enter a valid email address.' });
+    if (!rawInput) {
+      setAuthError({ message: mode === 'signup' ? 'Please enter a username.' : 'Please enter your username or email.' });
       return;
     }
 
@@ -94,8 +94,25 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       return;
     }
 
+    // Format email/username:
+    // In signup mode, user types only username, so append @malvision.com
+    // In login mode, if no @ domain is typed, format as username@malvision.com
+    let formattedEmail = rawInput;
+    if (mode === 'signup') {
+      const cleanUsername = rawInput.replace(/@.*$/, '').trim();
+      if (!cleanUsername) {
+        setAuthError({ message: 'Please enter a valid username.' });
+        return;
+      }
+      formattedEmail = `${cleanUsername}@malvision.com`;
+    } else {
+      if (!rawInput.includes('@')) {
+        formattedEmail = `${rawInput}@malvision.com`;
+      }
+    }
+
     // Gmail Policy Check: Rejects manual password auth for Gmail
-    if (normEmail.endsWith('@gmail.com')) {
+    if (formattedEmail.endsWith('@gmail.com')) {
       setAuthError({ message: 'Please continue with Google to use a Gmail account.' });
       return;
     }
@@ -121,7 +138,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
       // Register new unique account in userStore
       const result = registerUserAccount({
-        email: normEmail,
+        email: formattedEmail,
         password,
         fullName: fullName.trim(),
       });
@@ -145,7 +162,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       }, 500);
     } else {
       // Login Mode: Authenticate existing account credentials ONLY
-      const result = authenticateUserCredentials(normEmail, password);
+      const result = authenticateUserCredentials(formattedEmail, password);
 
       if (!result.success) {
         setLoading(false);
@@ -278,23 +295,28 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               </div>
             )}
 
-            {/* Email Address */}
+            {/* Email / Username Address Input */}
             <div className="space-y-1.5 text-left">
               <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                Email address
+                {mode === 'signup' ? 'Username' : 'Email address'}
               </label>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
-                  type="email"
+                  type={mode === 'signup' ? 'text' : 'text'}
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:border-neutral-900 dark:focus:border-white transition"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder={mode === 'signup' ? 'Enter username' : 'username@malvision.com'}
+                  className={`w-full pl-10 ${mode === 'signup' ? 'pr-32' : 'pr-4'} py-2.5 text-xs rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:border-neutral-900 dark:focus:border-white transition`}
                 />
+                {mode === 'signup' && (
+                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-neutral-500 dark:text-neutral-400 bg-neutral-200/60 dark:bg-neutral-800/80 my-1 mr-1 px-2.5 rounded-lg">
+                    @malvision.com
+                  </div>
+                )}
               </div>
             </div>
 
@@ -410,7 +432,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             </div>
           </div>
 
-          {/* SINGLE Google Authentication Button (Exactly One Button) */}
+          {/* SINGLE Google Authentication Button */}
           <div>
             <button
               type="button"
