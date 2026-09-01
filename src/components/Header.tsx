@@ -192,46 +192,44 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </nav>
 
-        {/* Right Tools (Desktop): Appearance -> Get Started -> Profile Dropdown */}
+        {/* Right Tools (Desktop): Appearance -> Get Started (when !user) OR Profile Dropdown (when user) */}
         <div className="hidden md:flex items-center space-x-2.5 sm:space-x-3">
           {/* Appearance Toggle */}
           <ThemeToggle />
 
-          {/* Primary CTA: Get Started */}
-          <button
-            onClick={onGetStarted ? onGetStarted : () => onNavigate('scanner')}
-            className="px-4 py-1.5 text-xs font-semibold rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
-          >
-            Get Started
-          </button>
-
-          {/* Profile Dropdown Trigger */}
-          <div className="relative" ref={profileDropdownRef}>
+          {!user ? (
+            /* Primary CTA: Get Started when not authenticated */
             <button
-              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-              className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-neutral-100/90 dark:bg-neutral-800/90 text-neutral-800 dark:text-neutral-200 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer active:scale-95"
-              aria-label="Profile menu"
-              aria-expanded={profileDropdownOpen}
+              onClick={onGetStarted ? onGetStarted : () => onNavigate('scanner')}
+              className="px-4 py-1.5 text-xs font-semibold rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
             >
-              <div className="w-5 h-5 rounded-full overflow-hidden bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-extrabold text-[10px] flex items-center justify-center shrink-0">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                ) : user ? (
-                  getInitials(user.name)
-                ) : (
-                  <User className="w-3 h-3 text-white dark:text-neutral-900" />
-                )}
-              </div>
-              <span className="text-xs font-semibold max-w-[110px] truncate">
-                {user ? user.name : 'Account'}
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 opacity-70 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+              Get Started
             </button>
+          ) : (
+            /* Profile Dropdown Trigger when authenticated */
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-neutral-100/90 dark:bg-neutral-800/90 text-neutral-800 dark:text-neutral-200 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer active:scale-95"
+                aria-label="Profile menu"
+                aria-expanded={profileDropdownOpen}
+              >
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(user.name)
+                  )}
+                </div>
+                <span className="text-xs font-semibold max-w-[110px] truncate">
+                  {user.name}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 opacity-70 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {/* Profile Dropdown Menu */}
-            {profileDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white/95 dark:bg-neutral-900/95 shadow-xl border border-neutral-200/80 dark:border-neutral-800 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-xl space-y-1">
-                {user && (
+              {/* Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white/95 dark:bg-neutral-900/95 shadow-xl border border-neutral-200/80 dark:border-neutral-800 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-xl space-y-1">
                   <div className="px-3 py-2 space-y-0.5 border-b border-neutral-200/80 dark:border-neutral-800">
                     <h4 className="text-xs font-bold text-neutral-900 dark:text-white truncate">
                       {user.name}
@@ -240,44 +238,42 @@ export const Header: React.FC<HeaderProps> = ({
                       {user.email}
                     </p>
                   </div>
-                )}
 
-                <button
-                  onClick={() => {
-                    onOpenSettings?.('profile');
-                    setProfileDropdownOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
-                >
-                  <User className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <span>Profile</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      onOpenSettings?.('profile');
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  >
+                    <User className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                    <span>Profile</span>
+                  </button>
 
-                <button
-                  onClick={() => {
-                    onOpenHistory ? onOpenHistory() : onNavigate('history');
-                    setProfileDropdownOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
-                >
-                  <Clock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <span>History</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      onOpenHistory ? onOpenHistory() : onNavigate('history');
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  >
+                    <Clock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                    <span>History</span>
+                  </button>
 
-                <button
-                  onClick={() => {
-                    onOpenSettings?.('database');
-                    setProfileDropdownOpen(false);
-                  }}
-                  className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
-                >
-                  <Settings className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <span>Settings</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      onOpenSettings?.('database');
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                    <span>Settings</span>
+                  </button>
 
-                <div className="border-t border-neutral-200/80 dark:border-neutral-800" />
+                  <div className="border-t border-neutral-200/80 dark:border-neutral-800" />
 
-                {user ? (
                   <button
                     onClick={() => {
                       onSignOut?.();
@@ -288,32 +284,105 @@ export const Header: React.FC<HeaderProps> = ({
                     <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     <span>Sign Out</span>
                   </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      onGetStarted?.();
-                      setProfileDropdownOpen(false);
-                    }}
-                    className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
-                  >
-                    <User className="w-4 h-4 text-neutral-900 dark:text-white" />
-                    <span>Sign In</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Right Tools (Mobile < 768px): Get Started -> Appearance -> Hamburger */}
+        {/* Right Tools (Mobile < 768px): Get Started (when !user) OR Profile (when user) -> Appearance -> Hamburger */}
         <div className="flex md:hidden items-center space-x-2">
-          {/* Get Started Button on Mobile Header */}
-          <button
-            onClick={onGetStarted ? onGetStarted : () => onNavigate('scanner')}
-            className="px-3 py-1.5 text-xs font-semibold rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
-          >
-            Get Started
-          </button>
+          {!user ? (
+            /* Get Started Button on Mobile Header when not authenticated */
+            <button
+              onClick={onGetStarted ? onGetStarted : () => onNavigate('scanner')}
+              className="px-3 py-1.5 text-xs font-semibold rounded-full bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:opacity-90 transition cursor-pointer shadow-xs whitespace-nowrap active:scale-95"
+            >
+              Get Started
+            </button>
+          ) : (
+            /* Compact Profile Button on Mobile Header when authenticated */
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-neutral-100/90 dark:bg-neutral-800/90 text-neutral-800 dark:text-neutral-200 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer active:scale-95"
+                aria-label="Profile menu"
+                aria-expanded={profileDropdownOpen}
+              >
+                <div className="w-4 h-4 rounded-full overflow-hidden bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 font-extrabold text-[9px] flex items-center justify-center shrink-0">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(user.name)
+                  )}
+                </div>
+                <span className="text-[11px] font-semibold max-w-[70px] truncate">
+                  {user.name.split(' ')[0]}
+                </span>
+                <ChevronDown className={`w-3 h-3 opacity-70 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Mobile Profile Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white/95 dark:bg-neutral-900/95 shadow-xl border border-neutral-200/80 dark:border-neutral-800 p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-xl space-y-1">
+                  <div className="px-3 py-1.5 space-y-0.5 border-b border-neutral-200/80 dark:border-neutral-800">
+                    <h4 className="text-xs font-bold text-neutral-900 dark:text-white truncate">
+                      {user.name}
+                    </h4>
+                    <p className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      onOpenSettings?.('profile');
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  >
+                    <User className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                    <span>Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onOpenHistory ? onOpenHistory() : onNavigate('history');
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                    <span>History</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onOpenSettings?.('database');
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-neutral-500 dark:text-neutral-400" />
+                    <span>Settings</span>
+                  </button>
+
+                  <div className="border-t border-neutral-200/80 dark:border-neutral-800" />
+
+                  <button
+                    onClick={() => {
+                      onSignOut?.();
+                      setProfileDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Appearance Toggle directly on Mobile Header */}
           <ThemeToggle />
@@ -400,16 +469,18 @@ export const Header: React.FC<HeaderProps> = ({
               Account
             </span>
             <div className="flex flex-col space-y-1 text-sm font-medium">
-              <button
-                onClick={() => {
-                  onOpenSettings?.('profile');
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
-              >
-                <User className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                <span>Profile</span>
-              </button>
+              {user && (
+                <button
+                  onClick={() => {
+                    onOpenSettings?.('profile');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+                >
+                  <User className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+                  <span>Profile</span>
+                </button>
+              )}
 
               <button
                 onClick={() => {
@@ -447,13 +518,13 @@ export const Header: React.FC<HeaderProps> = ({
               ) : (
                 <button
                   onClick={() => {
-                    onGetStarted?.();
+                    onGetStarted ? onGetStarted() : onNavigate('scanner');
                     setMobileMenuOpen(false);
                   }}
                   className="flex items-center space-x-3 text-left py-2.5 px-3 rounded-xl text-neutral-900 dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition font-semibold"
                 >
                   <User className="w-4 h-4 text-neutral-900 dark:text-white" />
-                  <span>Sign In</span>
+                  <span>Sign In / Get Started</span>
                 </button>
               )}
             </div>
