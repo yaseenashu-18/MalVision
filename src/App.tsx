@@ -154,6 +154,11 @@ export const AppContent: React.FC = () => {
   const handleSignOut = () => {
     setUser(null);
     destroyActiveSession();
+    setCurrentPage('dashboard');
+    setActiveScrollSection('dashboard');
+    if (window.location.hash !== '#/home') {
+      window.history.pushState(null, '', '#/home');
+    }
   };
 
   // If on login or signup view, render dedicated AuthPage without main Header/Footer
