@@ -1,4 +1,5 @@
 import type { UserRecord } from './userStore';
+import { CURRENT_AUTH_VERSION } from './userStore';
 import { normalizeEmail, DEFAULT_DB_NAME } from './mongoService';
 
 const CLOUD_USERS_KEY = 'malvision_mongodb_users_cloud';
@@ -11,7 +12,9 @@ export function fetchRemoteUsersFromMongoDB(): UserRecord[] {
     const raw = localStorage.getItem(CLOUD_USERS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // Only return users belonging to CURRENT_AUTH_VERSION = 2
+    return parsed.filter((u) => u && u.authVersion === CURRENT_AUTH_VERSION);
   } catch (e) {
     console.error('Error fetching remote users from MongoDB Atlas:', e);
     return [];
@@ -29,7 +32,7 @@ export function queryRemoteUserByEmail(emailStr: string): UserRecord | undefined
   const username = norm.split('@')[0];
 
   return remoteUsers.find((u) => {
-    if (!u || !u.normalizedEmail) return false;
+    if (!u || !u.normalizedEmail || u.authVersion !== CURRENT_AUTH_VERSION) return false;
     if (u.normalizedEmail === norm) return true;
     const uName = u.normalizedEmail.split('@')[0];
     return (
@@ -45,7 +48,7 @@ export function queryRemoteUserByEmail(emailStr: string): UserRecord | undefined
 export function queryRemoteUserByGoogleSub(googleSub: string): UserRecord | undefined {
   if (!googleSub) return undefined;
   const remoteUsers = fetchRemoteUsersFromMongoDB();
-  return remoteUsers.find((u) => u && u.provider === 'google' && u.googleSub === googleSub);
+  return remoteUsers.find((u) => u && u.provider === 'google' && u.googleSub === googleSub && u.authVersion === CURRENT_AUTH_VERSION);
 }
 
 /**
@@ -59,9 +62,9 @@ export function syncUserToMongoDB(user: UserRecord): boolean {
         u.normalizedEmail !== user.normalizedEmail &&
         (!user.googleSub || u.googleSub !== user.googleSub)
     );
-    const updated = [user, ...filtered];
+    const updated = [{ ...user, authVersion: CURRENT_AUTH_VERSION }, ...filtered];
     localStorage.setItem(CLOUD_USERS_KEY, JSON.stringify(updated));
-    console.log(`[MongoDB Atlas DB] Persisted document in 'users' collection:`, user.normalizedEmail, `[DB: ${DEFAULT_DB_NAME}]`);
+    console.log(`[MongoDB Atlas DB] Persisted document in 'users' collection:`, user.normalizedEmail, `[DB: ${DEFAULT_DB_NAME}] [v${CURRENT_AUTH_VERSION}]`);
     return true;
   } catch (e) {
     console.error('Failed to sync user account to MongoDB Atlas:', e);

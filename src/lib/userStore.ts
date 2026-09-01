@@ -13,10 +13,14 @@ export interface UserRecord {
   createdAt: string;
   failedLoginAttempts: number;
   lockoutUntil?: number;
+  authVersion?: number;
 }
+
+export const CURRENT_AUTH_VERSION = 2;
 
 const REGISTRY_STORAGE_KEY = 'malvision_user_registry';
 const SESSION_STORAGE_KEY = 'malvision_user_session';
+const VERSION_STORAGE_KEY = 'malvision_auth_version';
 
 /**
  * Normalizes email / identity string consistently.
@@ -28,7 +32,7 @@ export function normalizeIdentity(emailStr: string): string {
 }
 
 /**
- * Validates strict username format [a-z0-9_]+
+ * Validates strict username format [a-z0-9_]+ for Signup
  */
 export function validateUsernameFormat(usernameStr: string): { valid: boolean; error?: string; cleanUsername?: string } {
   if (!usernameStr) {
@@ -48,6 +52,28 @@ export function validateUsernameFormat(usernameStr: string): { valid: boolean; e
   }
 
   return { valid: true, cleanUsername: clean };
+}
+
+/**
+ * Validates complete email address format for Login
+ */
+export function validateLoginEmail(emailStr: string): { valid: boolean; error?: string; cleanEmail?: string } {
+  if (!emailStr) {
+    return { valid: false, error: 'Please enter your email address.' };
+  }
+
+  const clean = emailStr.trim().toLowerCase();
+
+  if (!clean.includes('@') || !clean.includes('.')) {
+    return { valid: false, error: 'Enter a valid email address.' };
+  }
+
+  const parts = clean.split('@');
+  if (!parts[0] || !parts[1] || parts[1].length < 3 || parts[1].startsWith('.') || parts[1].endsWith('.')) {
+    return { valid: false, error: 'Enter a valid email address.' };
+  }
+
+  return { valid: true, cleanEmail: clean };
 }
 
 /**
@@ -74,10 +100,9 @@ function hashPasswordWithSalt(password: string, salt: string): string {
   for (let i = 0; i < combined.length; i++) {
     const char = combined.charCodeAt(i);
     hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   
-  // Secondary pass with static security salt
   let hash2 = 5381;
   for (let i = 0; i < combined.length; i++) {
     hash2 = (hash2 * 33) ^ combined.charCodeAt(i);
@@ -87,28 +112,33 @@ function hashPasswordWithSalt(password: string, salt: string): string {
 }
 
 /**
+ * One-Time controlled database migration check for CURRENT_AUTH_VERSION = 2
+ */
+function checkDatabaseReset() {
+  try {
+    const v = localStorage.getItem(VERSION_STORAGE_KEY);
+    if (!v || parseInt(v, 10) < CURRENT_AUTH_VERSION) {
+      // One-time reset of legacy v1 registry
+      localStorage.removeItem(REGISTRY_STORAGE_KEY);
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.setItem(VERSION_STORAGE_KEY, CURRENT_AUTH_VERSION.toString());
+      console.log(`[MalVision Auth Engine] Controlled migration executed for AUTH_RESET_VERSION = ${CURRENT_AUTH_VERSION}`);
+    }
+  } catch (e) {
+    console.error('Error executing database reset migration:', e);
+  }
+}
+
+/**
  * Fetches the user registry merged with MongoDB Atlas remote database records
  */
 export function getUserRegistry(): UserRecord[] {
+  checkDatabaseReset();
+
   let localUsers: UserRecord[] = [];
   try {
     const raw = localStorage.getItem(REGISTRY_STORAGE_KEY);
-    if (!raw) {
-      const defaultSalt = generateSalt();
-      localUsers = [
-        {
-          id: 'usr_yaseen_default',
-          normalizedEmail: 'yaseen@malvision.com',
-          fullName: 'Yaseen Ashu',
-          passwordHash: hashPasswordWithSalt('Malvision123!', defaultSalt),
-          salt: defaultSalt,
-          provider: 'email',
-          createdAt: new Date().toISOString(),
-          failedLoginAttempts: 0,
-        },
-      ];
-      localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(localUsers));
-    } else {
+    if (raw) {
       const parsed = JSON.parse(raw);
       localUsers = Array.isArray(parsed) ? parsed : [];
     }
@@ -119,21 +149,23 @@ export function getUserRegistry(): UserRecord[] {
   const remoteUsers = fetchRemoteUsersFromMongoDB();
   const map = new Map<string, UserRecord>();
 
-  // Add local users first
   for (const u of localUsers) {
-    if (u && u.normalizedEmail) map.set(u.normalizedEmail, u);
+    if (u && u.normalizedEmail && u.authVersion === CURRENT_AUTH_VERSION) {
+      map.set(u.normalizedEmail, u);
+    }
   }
 
-  // Add/override with MongoDB Atlas remote users
   for (const u of remoteUsers) {
-    if (u && u.normalizedEmail) map.set(u.normalizedEmail, u);
+    if (u && u.normalizedEmail && u.authVersion === CURRENT_AUTH_VERSION) {
+      map.set(u.normalizedEmail, u);
+    }
   }
 
   return Array.from(map.values());
 }
 
 /**
- * Persists the updated user registry locally and to MongoDB Atlas
+ * Persists the updated user registry locally
  */
 function saveUserRegistry(registry: UserRecord[]): void {
   try {
@@ -150,9 +182,8 @@ export function findUserByNormalizedEmail(email: string): UserRecord | undefined
   const norm = normalizeIdentity(email);
   if (!norm) return undefined;
 
-  // Query MongoDB remote user store first
   const remote = queryRemoteUserByEmail(norm);
-  if (remote) return remote;
+  if (remote && remote.authVersion === CURRENT_AUTH_VERSION) return remote;
 
   const registry = getUserRegistry();
   const exact = registry.find((u) => u.normalizedEmail === norm);
@@ -172,14 +203,14 @@ export function findUserByNormalizedEmail(email: string): UserRecord | undefined
 export function findUserByGoogleSub(googleSub: string): UserRecord | undefined {
   if (!googleSub) return undefined;
   const remote = queryRemoteUserByGoogleSub(googleSub);
-  if (remote) return remote;
+  if (remote && remote.authVersion === CURRENT_AUTH_VERSION) return remote;
 
   const registry = getUserRegistry();
   return registry.find((u) => u.provider === 'google' && u.googleSub === googleSub);
 }
 
 /**
- * Register a new UNIQUE email/password user account
+ * Register a new UNIQUE email/password user account under CURRENT_AUTH_VERSION = 2
  */
 export function registerUserAccount(data: {
   email: string;
@@ -211,7 +242,7 @@ export function registerUserAccount(data: {
   const registry = getUserRegistry();
   const username = normEmail.split('@')[0];
 
-  // Enforce Unique Identity constraint across local and MongoDB Atlas
+  // Enforce Unique Identity constraint
   const existing = registry.find((u) => {
     if (u.normalizedEmail === normEmail) return true;
     const uName = u.normalizedEmail.split('@')[0];
@@ -230,7 +261,7 @@ export function registerUserAccount(data: {
   const passwordHash = hashPasswordWithSalt(data.password, salt);
 
   const newUser: UserRecord = {
-    id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: `usr_v2_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     normalizedEmail: normEmail,
     fullName: data.fullName.trim(),
     passwordHash,
@@ -238,6 +269,7 @@ export function registerUserAccount(data: {
     provider: 'email',
     createdAt: new Date().toISOString(),
     failedLoginAttempts: 0,
+    authVersion: CURRENT_AUTH_VERSION,
   };
 
   registry.push(newUser);
@@ -248,7 +280,7 @@ export function registerUserAccount(data: {
 }
 
 /**
- * Authenticates credentials for an existing account.
+ * Authenticates credentials for an existing account under CURRENT_AUTH_VERSION = 2.
  * NEVER creates an account during login.
  */
 export function authenticateUserCredentials(
@@ -282,8 +314,8 @@ export function authenticateUserCredentials(
     );
   });
 
-  // Reject non-existent accounts with generic security error (no account enumeration)
-  if (!user) {
+  // Reject non-existent accounts with generic security error
+  if (!user || user.authVersion !== CURRENT_AUTH_VERSION) {
     return { success: false, error: 'Invalid email or password.' };
   }
 
@@ -303,7 +335,7 @@ export function authenticateUserCredentials(
   if (!isMatch) {
     user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
     if (user.failedLoginAttempts >= 5) {
-      user.lockoutUntil = Date.now() + 15 * 60 * 1000; // 15 min lockout
+      user.lockoutUntil = Date.now() + 15 * 60 * 1000;
     }
     saveUserRegistry(registry);
     return { success: false, error: 'Invalid email or password.' };
@@ -319,33 +351,30 @@ export function authenticateUserCredentials(
 }
 
 /**
- * Real Google OAuth Authentication / Registration
- * One Google identity = One MalVision account.
+ * Real Google OAuth Authentication / Registration under CURRENT_AUTH_VERSION = 2
  */
 export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): UserRecord {
   const normEmail = normalizeIdentity(googleProfile.email);
   const googleSub = googleProfile.sub || `g_${normEmail}`;
   const registry = getUserRegistry();
 
-  // Find existing account by sub or normalized email
   let existingUser = registry.find(
     (u) => (u.googleSub && u.googleSub === googleSub) || u.normalizedEmail === normEmail
   );
 
   if (existingUser) {
-    // Update profile details without creating a duplicate account
     existingUser.fullName = googleProfile.name || existingUser.fullName;
     existingUser.avatar = googleProfile.avatar || existingUser.avatar;
     existingUser.provider = 'google';
     existingUser.googleSub = googleSub;
+    existingUser.authVersion = CURRENT_AUTH_VERSION;
     saveUserRegistry(registry);
     syncUserToMongoDB(existingUser);
     return existingUser;
   }
 
-  // Create new unique Google account
   const newUser: UserRecord = {
-    id: `usr_g_${Date.now()}`,
+    id: `usr_g_v2_${Date.now()}`,
     normalizedEmail: normEmail,
     fullName: googleProfile.name || 'Google User',
     avatar: googleProfile.avatar,
@@ -353,6 +382,7 @@ export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Use
     googleSub,
     createdAt: new Date().toISOString(),
     failedLoginAttempts: 0,
+    authVersion: CURRENT_AUTH_VERSION,
   };
 
   registry.push(newUser);
@@ -362,7 +392,7 @@ export function authenticateGoogleAccount(googleProfile: GoogleUserProfile): Use
 }
 
 /**
- * Creates and stores an active session
+ * Creates and stores an active session with CURRENT_AUTH_VERSION
  */
 export function createActiveSession(user: {
   name: string;
@@ -375,6 +405,7 @@ export function createActiveSession(user: {
     email: normalizeIdentity(user.email),
     avatar: user.avatar,
     provider: user.provider || 'email',
+    authVersion: CURRENT_AUTH_VERSION,
     createdAt: new Date().toISOString(),
   };
   localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
@@ -382,18 +413,30 @@ export function createActiveSession(user: {
 }
 
 /**
- * Gets the current active session
+ * Gets the current active session, invalidating any session with authVersion < CURRENT_AUTH_VERSION
  */
 export function getActiveSession(): {
   name: string;
   email: string;
   avatar?: string;
   provider?: string;
+  wasResetInvalidated?: boolean;
 } | null {
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+
+    // Invalidate stale sessions from old auth version
+    if (!parsed || parsed.authVersion !== CURRENT_AUTH_VERSION) {
+      destroyActiveSession();
+      return {
+        name: '',
+        email: '',
+        wasResetInvalidated: true,
+      };
+    }
+
     if (parsed && typeof parsed.email === 'string') {
       return {
         name: parsed.name,
@@ -409,7 +452,7 @@ export function getActiveSession(): {
 }
 
 /**
- * Destroys active session and invalidates state
+ * Destroys active session
  */
 export function destroyActiveSession() {
   try {
@@ -418,5 +461,15 @@ export function destroyActiveSession() {
     sessionStorage.clear();
   } catch (e) {
     console.error('Error destroying session:', e);
+  }
+}
+
+/**
+ * Unified Web/Mobile Sign Out function
+ */
+export function performSignOut() {
+  destroyActiveSession();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('malvision_logout'));
   }
 }

@@ -10,6 +10,7 @@ import {
   authenticateGoogleAccount,
   createActiveSession,
   validateUsernameFormat,
+  validateLoginEmail,
 } from '../lib/userStore';
 
 interface AuthPageProps {
@@ -104,17 +105,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       }
       formattedEmail = `${usernameCheck.cleanUsername}@malvision.com`;
     } else {
-      const rawInput = emailInput.trim().toLowerCase();
-      if (!rawInput) {
-        setAuthError({ message: 'Please enter your username or email.' });
+      // Validate complete email address format for Login
+      const emailCheck = validateLoginEmail(emailInput);
+      if (!emailCheck.valid) {
+        setAuthError({ message: emailCheck.error || 'Enter a valid email address.' });
         return;
       }
-
-      if (rawInput.includes('@')) {
-        formattedEmail = rawInput;
-      } else {
-        formattedEmail = `${rawInput}@malvision.com`;
-      }
+      formattedEmail = emailCheck.cleanEmail!;
     }
 
     // Gmail Policy Check: Rejects manual password auth for Gmail

@@ -288,7 +288,10 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="border-t border-neutral-200/80 dark:border-neutral-800" />
 
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       onSignOut?.();
                       setProfileDropdownOpen(false);
                     }}

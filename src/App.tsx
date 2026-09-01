@@ -9,7 +9,8 @@ import { CookiePolicy } from './pages/CookiePolicy';
 import { AuthPage } from './components/AuthPage';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
-import { getActiveSession, createActiveSession, destroyActiveSession } from './lib/userStore';
+import { getActiveSession, createActiveSession, destroyActiveSession, performSignOut } from './lib/userStore';
+import { AlertCircle, UserPlus, X } from 'lucide-react';
 import type { ScannerTabId } from './types';
 
 export const AppContent: React.FC = () => {
@@ -19,11 +20,51 @@ export const AppContent: React.FC = () => {
   const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'appearance' | 'privacy' | 'database' | 'history' | 'plans'>('database');
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
 
-  // Persistent authenticated user session state (restored automatically from localStorage on page reload)
+  // Persistent authenticated user session state
   const [user, setUser] = useState<{ name: string; email: string; avatar?: string; provider?: string } | null>(() => {
-    return getActiveSession();
+    const session = getActiveSession();
+    if (session && session.wasResetInvalidated) {
+      // Old v1 session invalidated during version 2 reset
+      return null;
+    }
+    return session && session.email ? session : null;
   });
+
+  // Check for old invalid session on initial mount
+  useEffect(() => {
+    const rawSession = localStorage.getItem('malvision_user_session');
+    const notified = localStorage.getItem('malvision_reset_notified');
+
+    if (rawSession && !notified) {
+      try {
+        const parsed = JSON.parse(rawSession);
+        if (!parsed || parsed.authVersion !== 2) {
+          destroyActiveSession();
+          setUser(null);
+          setShowResetModal(true);
+          localStorage.setItem('malvision_reset_notified', 'true');
+        }
+      } catch (e) {
+        destroyActiveSession();
+        setUser(null);
+      }
+    }
+
+    // Global logout event listener
+    const handleGlobalLogout = () => {
+      setUser(null);
+      setCurrentPage('dashboard');
+      setActiveScrollSection('dashboard');
+      if (window.location.hash !== '#/home') {
+        window.history.pushState(null, '', '#/home');
+      }
+    };
+
+    window.addEventListener('malvision_logout', handleGlobalLogout);
+    return () => window.removeEventListener('malvision_logout', handleGlobalLogout);
+  }, []);
 
   const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
     setCurrentPage(mode);
@@ -33,7 +74,6 @@ export const AppContent: React.FC = () => {
     }
   };
 
-  // Smooth navigation handler supporting standalone pages (/privacy, /terms, /cookies, /login, /signup) & scroll targets
   const handleNavigate = (page: string) => {
     const cleanPage = page.replace(/^#\/?/, '').toLowerCase();
 
@@ -56,7 +96,6 @@ export const AppContent: React.FC = () => {
       return;
     }
 
-    // Return to main Dashboard page for sections
     setCurrentPage('dashboard');
 
     if (cleanPage === 'dashboard' || cleanPage === 'home') {
@@ -107,7 +146,6 @@ export const AppContent: React.FC = () => {
     }
   };
 
-  // Sync hash routing on initial load and popstate
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
@@ -153,7 +191,7 @@ export const AppContent: React.FC = () => {
 
   const handleSignOut = () => {
     setUser(null);
-    destroyActiveSession();
+    performSignOut();
     setCurrentPage('dashboard');
     setActiveScrollSection('dashboard');
     if (window.location.hash !== '#/home') {
@@ -232,6 +270,53 @@ export const AppContent: React.FC = () => {
         user={user}
         onSignOut={handleSignOut}
       />
+
+      {/* Account Reset Notification Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-[#141416] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl space-y-4 text-left animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5 text-amber-600 dark:text-amber-400 font-extrabold text-base">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>Account reset</span>
+              </div>
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="p-1 rounded-full text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              Your previous MalVision account was removed during a recent database reset. Please create a new account to continue.
+            </p>
+
+            <div className="pt-2 flex items-center space-x-3">
+              <button
+                onClick={() => {
+                  setShowResetModal(false);
+                  handleOpenAuth('signup');
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-2 shadow-sm"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create new account</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowResetModal(false);
+                  handleOpenAuth('login');
+                }}
+                className="py-2.5 px-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
