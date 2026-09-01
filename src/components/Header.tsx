@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Monitor, Check, ChevronDown, LogOut, Menu, X, Clock } from 'lucide-react';
-import { useTheme } from '../lib/themeContext';
-import malvisionLogoSvg from '../assets/MalVision_glossy_black_logo_2K_2026083006316.svg';
+import { ChevronDown, LogOut, Menu, X, Clock } from 'lucide-react';
+import malvisionLogoSvg from '../assets/MalVision_logo_pixel_match.svg';
+import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   activeTab: string;
@@ -14,12 +14,9 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHistory, onGetStarted, user, onSignOut }) => {
-  const { theme, setTheme } = useTheme();
-  const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const settingsDropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const dashRef = useRef<HTMLButtonElement>(null);
@@ -46,9 +43,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (settingsDropdownRef.current && !settingsDropdownRef.current.contains(e.target as Node)) {
-        setSettingsDropdownOpen(false);
-      }
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
         setProfileDropdownOpen(false);
       }
@@ -63,12 +57,6 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
     return name.substring(0, 2).toUpperCase();
   };
 
-  const renderThemeIcon = () => {
-    if (theme === 'light') return <Sun className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />;
-    if (theme === 'dark') return <Moon className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />;
-    return <Monitor className="w-4 h-4 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />;
-  };
-
   const handleMobileNav = (tab: string) => {
     onNavigate(tab);
     setMobileMenuOpen(false);
@@ -78,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-warm-neutral/80 dark:bg-warm-neutral-dark/80 border-b border-neutral-200/60 dark:border-neutral-800/60 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        {/* Brand Logo using MalVision_glossy_black_logo_2K_2026083006316.svg */}
+        {/* Brand Logo using MalVision_logo_pixel_match.svg */}
         <button 
           onClick={() => onNavigate('dashboard')}
           className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1"
@@ -160,74 +148,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
             <span>History</span>
           </button>
 
-          {/* Desktop Appearance Button Dropdown */}
-          <div className="relative hidden md:block" ref={settingsDropdownRef}>
-            <button
-              onClick={() => setSettingsDropdownOpen(!settingsDropdownOpen)}
-              className="p-2 rounded-full text-neutral-700 dark:text-neutral-300 bg-neutral-100/80 dark:bg-neutral-800/80 border border-neutral-200/60 dark:border-neutral-700/60 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition cursor-pointer flex items-center justify-center"
-              aria-label="Appearance"
-              title={`Theme: ${theme}`}
-            >
-              {renderThemeIcon()}
-            </button>
-
-            {settingsDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-40 rounded-2xl bg-white dark:bg-neutral-900 shadow-xl border border-neutral-200 dark:border-neutral-800 p-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150 space-y-0.5">
-                <button
-                  onClick={() => {
-                    setTheme('light');
-                    setSettingsDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                    theme === 'light'
-                      ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
-                      : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/60'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2.5">
-                    <Sun className="w-3.5 h-3.5 text-neutral-900 dark:text-white stroke-[1.5]" />
-                    <span>Light</span>
-                  </div>
-                  {theme === 'light' && <Check className="w-3.5 h-3.5 text-neutral-900 dark:text-white" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setTheme('dark');
-                    setSettingsDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                    theme === 'dark'
-                      ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
-                      : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/60'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2.5">
-                    <Moon className="w-3.5 h-3.5 text-neutral-900 dark:text-white stroke-[1.5]" />
-                    <span>Dark</span>
-                  </div>
-                  {theme === 'dark' && <Check className="w-3.5 h-3.5 text-neutral-900 dark:text-white" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setTheme('system');
-                    setSettingsDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                    theme === 'system'
-                      ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
-                      : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100/60 dark:hover:bg-neutral-800/60'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2.5">
-                    <Monitor className="w-3.5 h-3.5 text-neutral-900 dark:text-white stroke-[1.5]" />
-                    <span>System</span>
-                  </div>
-                  {theme === 'system' && <Check className="w-3.5 h-3.5 text-neutral-900 dark:text-white" />}
-                </button>
-              </div>
-            )}
+          {/* Desktop Appearance Button (Magic UI Animated Theme Toggler) */}
+          <div className="hidden md:block">
+            <ThemeToggle />
           </div>
 
           {/* Profile Dropdown or Get Started Button */}
@@ -342,29 +265,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onNavigate, onOpenHis
           {/* Theme Selector in Mobile Menu */}
           <div className="pt-2 border-t border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between">
             <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Theme</span>
-            <div className="flex items-center space-x-1 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
-              <button
-                onClick={() => setTheme('light')}
-                className={`p-1.5 rounded-lg transition ${theme === 'light' ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs' : 'text-neutral-400'}`}
-                title="Light"
-              >
-                <Sun className="w-4 h-4 stroke-[1.5]" />
-              </button>
-              <button
-                onClick={() => setTheme('dark')}
-                className={`p-1.5 rounded-lg transition ${theme === 'dark' ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs' : 'text-neutral-400'}`}
-                title="Dark"
-              >
-                <Moon className="w-4 h-4 stroke-[1.5]" />
-              </button>
-              <button
-                onClick={() => setTheme('system')}
-                className={`p-1.5 rounded-lg transition ${theme === 'system' ? 'bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white shadow-xs' : 'text-neutral-400'}`}
-                title="System"
-              >
-                <Monitor className="w-4 h-4 stroke-[1.5]" />
-              </button>
-            </div>
+            <ThemeToggle />
           </div>
         </div>
       )}
