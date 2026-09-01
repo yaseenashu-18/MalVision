@@ -8,6 +8,8 @@ export function ThemeToggle() {
     <AnimatedThemeToggler
       theme={resolvedTheme === "dark" ? "dark" : "light"}
       onThemeChange={setTheme}
+      variant="circle"
+      duration={450}
     />
   );
 }
