@@ -124,17 +124,18 @@ export const Header: React.FC<HeaderProps> = ({
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left: Brand Logo & Title */}
+        {/* Left: Balanced Brand Lockup (Logo + Wordmark) */}
         <button
           onClick={() => onNavigate('dashboard')}
-          className="flex items-center space-x-2 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1 shrink-0"
+          className="flex items-center space-x-2.5 focus:outline-none transition opacity-95 hover:opacity-100 cursor-pointer group py-1 shrink-0"
+          aria-label="MalVision Home"
         >
           <img
             src={malvisionLogoSvg}
             alt="MalVision Logo"
-            className="h-8 sm:h-9 md:h-10 w-auto object-contain dark:invert transition-transform duration-200 group-hover:scale-105"
+            className="h-7 sm:h-8 w-auto object-contain dark:invert transition-transform duration-200 group-hover:scale-105"
           />
-          <span className="font-bold text-base sm:text-lg tracking-tight text-neutral-900 dark:text-white">
+          <span className="font-bold text-lg sm:text-xl tracking-tight text-neutral-900 dark:text-white leading-none">
             MalVision
           </span>
         </button>
