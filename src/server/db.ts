@@ -191,7 +191,18 @@ async function ensureIndexes(db: Db) {
     await db.collection('sessions').createIndex({ userId: 1 });
     await db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-    // 5. Admin Audit Logs collection indexes
+    // 5. Password Resets collection indexes (with 15-min native TTL index)
+    await db.collection('password_resets').createIndex({ resetCode: 1 });
+    await db.collection('password_resets').createIndex({ resetHash: 1 });
+    await db.collection('password_resets').createIndex({ email: 1 });
+    await db.collection('password_resets').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+    // 6. Email OTPs collection indexes (with 10-min native TTL index)
+    await db.collection('email_otps').createIndex({ userId: 1 });
+    await db.collection('email_otps').createIndex({ email: 1 });
+    await db.collection('email_otps').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+    // 7. Admin Audit Logs collection indexes
     await db.collection('admin_audit_logs').createIndex({ id: 1 }, { unique: true });
     await db.collection('admin_audit_logs').createIndex({ timestamp: -1 });
     await db.collection('admin_audit_logs').createIndex({ adminUserId: 1 });
@@ -1070,3 +1081,171 @@ export async function dbGetAdminAuditLogs(query: { limit?: number; offset?: numb
 
   return { total, logs: logs.map((l) => cleanDoc<ServerAuditLogRecord>(l)!) };
 }
+
+// --- PASSWORD RESET PERSISTENCE ---
+
+export interface ServerPasswordResetRecord {
+  email: string;
+  userId: string;
+  resetCode: string;
+  resetHash: string;
+  createdAt: string;
+  expiresAt: Date;
+  attempts: number;
+  lastSentAt: number;
+}
+
+export interface ServerEmailOtpRecord {
+  userId: string;
+  email: string;
+  otpCode: string;
+  otpHash: string;
+  createdAt: string;
+  expiresAt: Date;
+  attempts: number;
+  lastSentAt: number;
+}
+
+export async function dbSavePasswordReset(data: {
+  email: string;
+  userId: string;
+  resetCode: string;
+  resetHash: string;
+  ttlMs?: number;
+}): Promise<ServerPasswordResetRecord> {
+  const db = await getMongoDb();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + (data.ttlMs || 15 * 60 * 1000));
+
+  const record: ServerPasswordResetRecord = {
+    email: data.email.trim().toLowerCase(),
+    userId: data.userId,
+    resetCode: data.resetCode,
+    resetHash: data.resetHash,
+    createdAt: now.toISOString(),
+    expiresAt,
+    attempts: 0,
+    lastSentAt: now.getTime(),
+  };
+
+  try {
+    await db.collection('password_resets').deleteMany({
+      $or: [{ email: record.email }, { resetCode: record.resetCode }, { userId: record.userId }],
+    });
+    await db.collection('password_resets').insertOne({ ...record });
+  } catch (err) {
+    console.warn('[MongoDB] Save password reset notice:', err);
+  }
+
+  return record;
+}
+
+export async function dbFindPasswordReset(codeOrEmailOrHash: string): Promise<ServerPasswordResetRecord | null> {
+  if (!codeOrEmailOrHash) return null;
+  const input = codeOrEmailOrHash.trim();
+  const db = await getMongoDb();
+  const inputHash = crypto.createHash('sha256').update(input).digest('hex');
+
+  try {
+    const doc = await db.collection('password_resets').findOne({
+      $or: [
+        { resetCode: input },
+        { resetHash: input },
+        { resetHash: inputHash },
+        { email: input.toLowerCase() },
+      ],
+    });
+
+    if (!doc) return null;
+    const record = cleanDoc<ServerPasswordResetRecord>(doc)!;
+    const expTime = record.expiresAt instanceof Date ? record.expiresAt.getTime() : new Date(record.expiresAt).getTime();
+
+    if (expTime < Date.now()) {
+      await db.collection('password_resets').deleteOne({ resetCode: record.resetCode }).catch(() => {});
+      return null;
+    }
+
+    return record;
+  } catch (err) {
+    console.warn('[MongoDB] Find password reset notice:', err);
+    return null;
+  }
+}
+
+export async function dbDeletePasswordReset(resetCodeOrEmail: string): Promise<void> {
+  if (!resetCodeOrEmail) return;
+  const target = resetCodeOrEmail.trim();
+  const db = await getMongoDb();
+  try {
+    await db.collection('password_resets').deleteMany({
+      $or: [{ resetCode: target }, { resetHash: target }, { email: target.toLowerCase() }],
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+// --- EMAIL OTP PERSISTENCE ---
+
+export async function dbSaveEmailOtp(data: {
+  userId: string;
+  email: string;
+  otpHash: string;
+  ttlMs?: number;
+}): Promise<ServerEmailOtpRecord> {
+  const db = await getMongoDb();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + (data.ttlMs || 10 * 60 * 1000));
+
+  const record: ServerEmailOtpRecord = {
+    userId: data.userId,
+    email: data.email.trim().toLowerCase(),
+    otpCode: '',
+    otpHash: data.otpHash,
+    createdAt: now.toISOString(),
+    expiresAt,
+    attempts: 0,
+    lastSentAt: now.getTime(),
+  };
+
+  try {
+    await db.collection('email_otps').deleteMany({ userId: data.userId });
+    await db.collection('email_otps').insertOne({ ...record });
+  } catch (err) {
+    console.warn('[MongoDB] Save email OTP notice:', err);
+  }
+
+  return record;
+}
+
+export async function dbGetEmailOtp(userId: string): Promise<ServerEmailOtpRecord | null> {
+  if (!userId) return null;
+  const db = await getMongoDb();
+  try {
+    const doc = await db.collection('email_otps').findOne({ userId });
+    if (!doc) return null;
+
+    const record = cleanDoc<ServerEmailOtpRecord>(doc)!;
+    const expTime = record.expiresAt instanceof Date ? record.expiresAt.getTime() : new Date(record.expiresAt).getTime();
+
+    if (expTime < Date.now()) {
+      await db.collection('email_otps').deleteOne({ userId }).catch(() => {});
+      return null;
+    }
+
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+export async function dbDeleteEmailOtp(userId: string): Promise<void> {
+  if (!userId) return;
+  const db = await getMongoDb();
+  try {
+    await db.collection('email_otps').deleteMany({ userId });
+  } catch {
+    /* ignore */
+  }
+}
+

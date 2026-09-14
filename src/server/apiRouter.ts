@@ -47,6 +47,12 @@ import {
   dbRevokeUserSessionsByAdmin,
   dbLogAdminAction,
   dbGetAdminAuditLogs,
+  dbSavePasswordReset,
+  dbFindPasswordReset,
+  dbDeletePasswordReset,
+  dbSaveEmailOtp,
+  dbGetEmailOtp,
+  dbDeleteEmailOtp,
   type ServerUserRecord,
 } from './db.js';
 
@@ -442,6 +448,9 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         lastSentAt: Date.now(),
       });
 
+      // Persist in MongoDB Atlas for serverless compatibility
+      await dbSaveEmailOtp({ userId: user.id, email, otpHash, ttlMs: 10 * 60 * 1000 });
+
       console.log(`[MalVision Auth API] Verification OTP generated for ${email} (User: ${user.id}): ${otpCode}`);
 
       // Dispatch real verification OTP email asynchronously
@@ -492,7 +501,22 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       }
 
       // Check cooldown (30s)
-      const existingReset = resetPasswordStore.get(targetEmail);
+      let existingReset: ResetPasswordRecord | undefined = resetPasswordStore.get(targetEmail);
+      if (!existingReset) {
+        const dbReset = await dbFindPasswordReset(targetEmail);
+        if (dbReset) {
+          existingReset = {
+            email: dbReset.email,
+            userId: dbReset.userId,
+            resetHash: dbReset.resetHash,
+            createdAt: new Date(dbReset.createdAt).getTime(),
+            expiresAt: dbReset.expiresAt instanceof Date ? dbReset.expiresAt.getTime() : new Date(dbReset.expiresAt).getTime(),
+            attempts: dbReset.attempts,
+            lastSentAt: dbReset.lastSentAt,
+          };
+        }
+      }
+
       if (existingReset && Date.now() - existingReset.lastSentAt < 30000) {
         const remaining = Math.ceil((30000 - (Date.now() - existingReset.lastSentAt)) / 1000);
         sendError(res, 429, `Please wait ${remaining}s before requesting a new code.`);
@@ -516,9 +540,18 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       resetPasswordStore.set(resetCode, resetRecord);
       resetPasswordStore.set(resetHash, resetRecord);
 
+      // Save to MongoDB Atlas (Persistent across Vercel Serverless instances)
+      await dbSavePasswordReset({
+        email: targetEmail,
+        userId: targetUser.id,
+        resetCode,
+        resetHash,
+        ttlMs: 15 * 60 * 1000,
+      });
+
       const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
-      const resetLink = `${proto}://${host}/#/reset-password?code=${resetCode}`;
+      const resetLink = `${proto}://${host}/#/reset-password?code=${resetCode}&email=${encodeURIComponent(targetEmail)}`;
 
       console.log(`[MalVision Auth API] Password reset code generated for ${targetEmail}: ${resetCode} (Link: ${resetLink})`);
 
@@ -564,7 +597,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
-      // Find reset session by code, email, or resetHash
+      // Find reset session by code, email, or resetHash in memory
       let record: ResetPasswordRecord | undefined = resetPasswordStore.get(code);
 
       if (!record && email) {
@@ -585,6 +618,26 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         }
       }
 
+      // Fallback: Query MongoDB Atlas if memory cache missed (Vercel Serverless multi-instance support)
+      if (!record) {
+        const dbRecord = await dbFindPasswordReset(code || email);
+        if (dbRecord) {
+          record = {
+            email: dbRecord.email,
+            userId: dbRecord.userId,
+            resetHash: dbRecord.resetHash,
+            createdAt: new Date(dbRecord.createdAt).getTime(),
+            expiresAt: dbRecord.expiresAt instanceof Date ? dbRecord.expiresAt.getTime() : new Date(dbRecord.expiresAt).getTime(),
+            attempts: dbRecord.attempts,
+            lastSentAt: dbRecord.lastSentAt,
+          };
+          // Cache back in memory
+          resetPasswordStore.set(record.email, record);
+          resetPasswordStore.set(code, record);
+          resetPasswordStore.set(record.resetHash, record);
+        }
+      }
+
       if (!record) {
         sendError(res, 400, 'Password reset link is invalid or has expired. Please request a new link.');
         return true;
@@ -595,6 +648,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         resetPasswordStore.delete(record.email);
         resetPasswordStore.delete(code);
         resetPasswordStore.delete(record.resetHash);
+        await dbDeletePasswordReset(code || record.email);
         sendError(res, 400, 'This password reset link has expired.');
         return true;
       }
@@ -606,7 +660,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
 
       await dbUpdateUser(record.userId, { passwordHash: newHash, salt: newSalt });
 
-      // Note: We keep the reset record active until expiresAt (15 min) so user can change password anytime in 15min.
+      // Note: We keep the reset record active in MongoDB Atlas until expiresAt (15 min) so user can change password anytime in 15min.
 
       sendJson(res, 200, {
         success: true,
@@ -649,7 +703,23 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
-      const sessionRecord = emailOtpStore.get(user.id);
+      let sessionRecord = emailOtpStore.get(user.id);
+      if (!sessionRecord) {
+        const dbOtp = await dbGetEmailOtp(user.id);
+        if (dbOtp) {
+          sessionRecord = {
+            userId: dbOtp.userId,
+            email: dbOtp.email,
+            otpHash: dbOtp.otpHash,
+            createdAt: new Date(dbOtp.createdAt).getTime(),
+            expiresAt: dbOtp.expiresAt instanceof Date ? dbOtp.expiresAt.getTime() : new Date(dbOtp.expiresAt).getTime(),
+            attempts: dbOtp.attempts,
+            lastSentAt: dbOtp.lastSentAt,
+          };
+          emailOtpStore.set(user.id, sessionRecord);
+        }
+      }
+
       if (!sessionRecord || sessionRecord.email !== email) {
         sendError(res, 400, 'Verification session expired. Please request a new code.');
         return true;
@@ -657,12 +727,14 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
 
       if (Date.now() > sessionRecord.expiresAt) {
         emailOtpStore.delete(user.id);
+        await dbDeleteEmailOtp(user.id);
         sendError(res, 400, 'This verification code has expired.');
         return true;
       }
 
       if (sessionRecord.attempts >= 5) {
         emailOtpStore.delete(user.id);
+        await dbDeleteEmailOtp(user.id);
         sendError(res, 429, 'Too many attempts. Please request a new verification code.');
         return true;
       }

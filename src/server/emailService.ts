@@ -269,7 +269,7 @@ export async function sendVerificationOtpEmail(toEmail: string, otp: string, _us
 export async function sendPasswordResetEmail(toEmail: string, resetCode: string, resetLink?: string, _userName?: string, expirationMinutes = 15): Promise<boolean> {
   try {
     const fromAddress = `"${SMTP_FROM_NAME}" <${SMTP_FROM_EMAIL}>`;
-    const targetUrl = resetLink || `https://malvision.vercel.app/#/reset-password?code=${resetCode}`;
+    const targetUrl = resetLink || `https://malvision.vercel.app/#/reset-password?code=${resetCode}&email=${encodeURIComponent(toEmail)}`;
     const securityUrl = `https://malvision.vercel.app/#/login`;
     const htmlContent = buildPasswordResetEmailHtml(targetUrl, expirationMinutes, securityUrl);
 
