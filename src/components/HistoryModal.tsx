@@ -21,11 +21,14 @@ export function downloadMalVisionPdfReport(item: ScanResultData) {
   const statusColor = isSafe ? '#16a34a' : '#dc2626';
   const statusBg = isSafe ? 'rgba(22, 163, 74, 0.08)' : 'rgba(220, 38, 38, 0.08)';
 
+  const cleanTargetName = (item.target || 'Report').replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const reportTitle = `Malvision_Scan_Report_${cleanTargetName || 'Document'}`;
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
       <head>
-        <title>MalVision_Threat_Report_${item.id || 'scan'}</title>
+        <title>${reportTitle}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
           @page {
