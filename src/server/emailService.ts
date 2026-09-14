@@ -1,6 +1,4 @@
 import nodemailer from 'nodemailer';
-import path from 'path';
-import fs from 'fs';
 
 function getEnv(key: string, fallback = ''): string {
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
@@ -32,80 +30,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-function getLogoAttachment(): { attachments: any[]; logoSrc: string } {
-  try {
-    const possibleSvgPaths = [
-      path.resolve(process.cwd(), 'src/assets/MalVision_logo_pixel_match.svg'),
-      path.resolve(process.cwd(), 'dist/assets/MalVision_logo_pixel_match.svg'),
-      path.resolve(__dirname, '../assets/MalVision_logo_pixel_match.svg'),
-      path.resolve(__dirname, '../../src/assets/MalVision_logo_pixel_match.svg'),
-    ];
-
-    for (const p of possibleSvgPaths) {
-      if (fs.existsSync(p)) {
-        const svgContent = fs.readFileSync(p, 'utf8');
-        const match = svgContent.match(/href="data:image\/png;base64,([^"]+)"/);
-        if (match) {
-          const buffer = Buffer.from(match[1], 'base64');
-          return {
-            attachments: [
-              {
-                filename: 'malvision-logo.png',
-                content: buffer,
-                cid: 'malvision-logo@malvision.ai',
-              },
-            ],
-            logoSrc: 'cid:malvision-logo@malvision.ai',
-          };
-        }
-      }
-    }
-
-    const possiblePngPaths = [
-      path.resolve(process.cwd(), 'src/assets/malvision_logo.png'),
-      path.resolve(process.cwd(), 'dist/assets/malvision_logo.png'),
-      path.resolve(__dirname, '../assets/malvision_logo.png'),
-      path.resolve(__dirname, '../../src/assets/malvision_logo.png'),
-    ];
-
-    for (const p of possiblePngPaths) {
-      if (fs.existsSync(p)) {
-        return {
-          attachments: [
-            {
-              filename: 'malvision-logo.png',
-              path: p,
-              cid: 'malvision-logo@malvision.ai',
-            },
-          ],
-          logoSrc: 'cid:malvision-logo@malvision.ai',
-        };
-      }
-    }
-  } catch {
-    /* fallback to inline svg / text if file resolution fails */
-  }
-
-  return { attachments: [], logoSrc: '' };
-}
-
 /**
  * Shared MalVision Outer Shell & Header / Footer Layout (PURE WHITE / LIGHT THEME ONLY)
  */
 function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: string): string {
-  const { logoSrc } = getLogoAttachment();
-
   const logoHeaderHtml = `
     <table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
       <tr>
         <td valign="middle" style="padding-right: 8px; vertical-align: middle;">
-          ${
-            logoSrc
-              ? `<img src="${logoSrc}" alt="MalVision Logo" height="28" style="display: block; height: 28px; width: auto; border: 0; outline: none;" />`
-              : `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                   <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-                 </svg>`
-          }
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </td>
         <td valign="middle" style="vertical-align: middle; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1;">
           MalVision
@@ -262,7 +197,6 @@ export async function sendVerificationOtpEmail(toEmail: string, otp: string, _us
   try {
     const fromAddress = `"${SMTP_FROM_NAME}" <${SMTP_FROM_EMAIL}>`;
     const htmlContent = buildVerificationEmailHtml(otp, expirationMinutes);
-    const { attachments } = getLogoAttachment();
 
     await transporter.sendMail({
       from: fromAddress,
@@ -270,7 +204,6 @@ export async function sendVerificationOtpEmail(toEmail: string, otp: string, _us
       subject: 'Verify your MalVision email',
       text: `MalVision - Verify your email\n\nYour MalVision verification code is below:\n\n${otp}\n\nThis code expires in ${expirationMinutes} minutes.\nIf you didn't request this email, you can safely ignore it.\n© 2026 MalVision. All rights reserved.`,
       html: htmlContent,
-      attachments,
     });
 
     console.log(`[EmailService] Verification OTP email successfully sent to ${toEmail} from ${fromAddress}`);
@@ -290,7 +223,6 @@ export async function sendPasswordResetEmail(toEmail: string, resetCode: string,
     const targetUrl = resetLink || `https://malvision.vercel.app/#/reset-password?code=${resetCode}`;
     const securityUrl = `https://malvision.vercel.app/#/login`;
     const htmlContent = buildPasswordResetEmailHtml(targetUrl, expirationMinutes, securityUrl);
-    const { attachments } = getLogoAttachment();
 
     await transporter.sendMail({
       from: fromAddress,
@@ -298,7 +230,6 @@ export async function sendPasswordResetEmail(toEmail: string, resetCode: string,
       subject: 'Reset your MalVision password',
       text: `MalVision - Reset your password\n\nWe received a request to reset your MalVision password. Click the link below to set a new password:\n${targetUrl}\n\nThis password reset link expires in ${expirationMinutes} minutes.\nIf you didn't request a password reset, then secure account: ${securityUrl}\n© 2026 MalVision. All rights reserved.`,
       html: htmlContent,
-      attachments,
     });
 
     console.log(`[EmailService] Password Reset email successfully sent to ${toEmail} from ${fromAddress}`);
