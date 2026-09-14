@@ -90,25 +90,29 @@ function getLogoAttachment(): { attachments: any[]; logoSrc: string } {
 }
 
 /**
- * Shared MalVision Outer Shell & Header / Footer Layout matching reference designs
+ * Shared MalVision Outer Shell & Header / Footer Layout (PURE WHITE / LIGHT THEME ONLY)
  */
 function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: string): string {
   const { logoSrc } = getLogoAttachment();
 
-  const logoHeaderHtml = logoSrc
-    ? `<img src="${logoSrc}" alt="MalVision" height="28" style="display: block; height: 28px; width: auto; border: 0; outline: none;" />`
-    : `<table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-        <tr>
-          <td valign="middle" style="padding-right: 8px; vertical-align: middle;">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </td>
-          <td valign="middle" style="vertical-align: middle; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1;">
-            MalVision
-          </td>
-        </tr>
-      </table>`;
+  const logoHeaderHtml = `
+    <table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+      <tr>
+        <td valign="middle" style="padding-right: 8px; vertical-align: middle;">
+          ${
+            logoSrc
+              ? `<img src="${logoSrc}" alt="MalVision Logo" height="28" style="display: block; height: 28px; width: auto; border: 0; outline: none;" />`
+              : `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                 </svg>`
+          }
+        </td>
+        <td valign="middle" style="vertical-align: middle; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1;">
+          MalVision
+        </td>
+      </tr>
+    </table>
+  `;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -121,7 +125,7 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
-    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0b0c0e; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #ffffff; }
     @media only screen and (max-width: 600px) {
       .email-card { width: 100% !important; max-width: 100% !important; border-radius: 20px !important; }
       .card-padding { padding: 24px 20px !important; }
@@ -129,12 +133,12 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0b0c0e; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0b0c0e; table-layout: fixed;">
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; table-layout: fixed;">
     <tr>
-      <td align="center" style="padding: 40px 16px;">
-        <!-- Main Email Card -->
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="email-card" style="max-width: 540px; background-color: #ffffff; border-radius: 30px; border-collapse: separate; overflow: hidden; margin: 0 auto;">
+      <td align="center" style="padding: 32px 16px;">
+        <!-- Main Email Card (Pure White / Clean Light Border) -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="email-card" style="max-width: 540px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 30px; border-collapse: separate; overflow: hidden; margin: 0 auto;">
           <tr>
             <td class="card-padding" style="padding: 38px 40px 36px 40px;">
               <!-- Header -->

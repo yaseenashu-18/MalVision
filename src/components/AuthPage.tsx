@@ -430,9 +430,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-neutral-900 dark:text-white">✓ Password reset link sent</h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
-                  We sent a password reset link to <strong className="text-neutral-900 dark:text-white">{forgotEmail}</strong>. Please check your email inbox and click the link to set a new password.
-                </p>
               </div>
               <div className="space-y-2 pt-2">
                 <button

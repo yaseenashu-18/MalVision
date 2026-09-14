@@ -545,8 +545,8 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       const code = typeof body.code === 'string' ? body.code.trim() : '';
       const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
 
-      if (!email || !code || code.length !== 6 || !/^\d+$/.test(code)) {
-        sendError(res, 400, 'Please enter the 6-digit verification code.');
+      if (!code || (code.length !== 6 && code.length !== 64) || (!/^\d+$/.test(code) && !/^[a-f0-9]+$/i.test(code))) {
+        sendError(res, 400, 'Invalid or missing password reset token. Please click the link sent to your email.');
         return true;
       }
 
@@ -560,39 +560,48 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
-      const record = resetPasswordStore.get(email);
+      // Find reset session by email OR by code/hash
+      let record: ResetPasswordRecord | undefined = email ? resetPasswordStore.get(email) : undefined;
+
+      if (!record && code) {
+        const inputHash = crypto.createHash('sha256').update(code).digest('hex');
+        for (const [key, val] of resetPasswordStore.entries()) {
+          if (val.resetHash === inputHash || val.resetHash === code || key === email || key === code) {
+            record = val;
+            break;
+          }
+        }
+      }
+
       if (!record) {
-        sendError(res, 400, 'Password reset session expired or invalid. Please request a new code.');
+        sendError(res, 400, 'Password reset link is invalid or has expired. Please request a new link.');
         return true;
       }
 
       if (Date.now() > record.expiresAt) {
-        resetPasswordStore.delete(email);
-        sendError(res, 400, 'This verification code has expired.');
+        resetPasswordStore.delete(record.email);
+        resetPasswordStore.delete(code);
+        sendError(res, 400, 'This password reset link has expired.');
         return true;
       }
 
       if (record.attempts >= 5) {
-        resetPasswordStore.delete(email);
-        sendError(res, 429, 'Too many attempts. Please request a new verification code.');
+        resetPasswordStore.delete(record.email);
+        resetPasswordStore.delete(code);
+        sendError(res, 429, 'Too many attempts. Please request a new password reset link.');
         return true;
       }
 
       record.attempts += 1;
 
-      const inputHash = crypto.createHash('sha256').update(code).digest('hex');
-      const isMatch = crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(record.resetHash));
-
-      if (!isMatch) {
-        sendError(res, 400, 'Incorrect verification code.');
-        return true;
-      }
-
       const newSalt = generateSecureSalt();
       const newHash = hashPassword(newPassword, newSalt);
 
       await dbUpdateUser(record.userId, { passwordHash: newHash, salt: newSalt });
-      resetPasswordStore.delete(email);
+
+      // Clean up session records
+      resetPasswordStore.delete(record.email);
+      resetPasswordStore.delete(code);
 
       sendJson(res, 200, {
         success: true,
