@@ -398,54 +398,6 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
     }
 
     // -------------------------------------------------------------
-    // 4B. REAL-TIME INSTANT SESSION REVOCATION STREAM: GET /api/auth/session-stream
-    // -------------------------------------------------------------
-    if (pathname === '/api/auth/session-stream' && method === 'GET') {
-      const user = await getAuthenticatedUserFromReq(req);
-      if (!user) {
-        res.statusCode = 401;
-        res.end('Unauthorized');
-        return true;
-      }
-
-      const cookies = parseCookies(req);
-      const sessionId = cookies[SESSION_COOKIE_NAME] || (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim();
-
-      if (!sessionId) {
-        res.statusCode = 401;
-        res.end('Missing session');
-        return true;
-      }
-
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-      });
-
-      res.write(': keep-alive\n\n');
-      sseSessionClients.set(sessionId, res);
-
-      const heartbeat = setInterval(() => {
-        try {
-          res.write(': ping\n\n');
-        } catch {
-          clearInterval(heartbeat);
-        }
-      }, 8000);
-
-      req.on('close', () => {
-        clearInterval(heartbeat);
-        if (sseSessionClients.get(sessionId) === res) {
-          sseSessionClients.delete(sessionId);
-        }
-      });
-
-      return true;
-    }
-
-    // -------------------------------------------------------------
     // 5. LOGOUT: POST /api/auth/logout
     // -------------------------------------------------------------
     if (pathname === '/api/auth/logout' && method === 'POST') {

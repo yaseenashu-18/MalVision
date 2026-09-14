@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   dbFindUserById,
   dbGetSession,
-  dbGetSessionByUserId,
+  dbGetActiveSessionsForUser,
   type ServerUserRecord,
 } from './db.js';
 
@@ -129,63 +129,46 @@ export function clearSessionCookie(res: ServerResponse) {
 // --- AUTHENTICATION CONTEXT ---
 
 export async function getAuthenticatedUserFromReq(req: IncomingMessage): Promise<ServerUserRecord | null> {
-  // 1. Cookie session lookup
   const cookies = parseCookies(req);
   const cookieSessionId = cookies[SESSION_COOKIE_NAME];
-  if (cookieSessionId) {
-    const session = await dbGetSession(cookieSessionId);
-    if (session) {
-      const user = await dbFindUserById(session.userId);
-      if (user && user.status === 'active') return user;
-    }
-  }
-
-  // 2. Custom header session ID lookup
   const headerSessionId = (req.headers['x-malvision-session-id'] as string) || '';
-  if (headerSessionId) {
-    const session = await dbGetSession(headerSessionId);
-    if (session) {
-      const user = await dbFindUserById(session.userId);
-      if (user && user.status === 'active') return user;
-    }
-  }
-
-  // 3. Authorization Bearer header (sessionId or userId token)
   const authHeader = (req.headers['authorization'] as string) || '';
+
+  let bearerSessionId = '';
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7).trim();
-    if (token) {
-      // If token is sessionId (sess_...)
-      if (token.startsWith('sess_')) {
-        const session = await dbGetSession(token);
-        if (session) {
-          const user = await dbFindUserById(session.userId);
-          if (user && user.status === 'active') return user;
-        }
-      }
-      // If token is userId (usr_...)
-      if (token.startsWith('usr_')) {
-        const session = await dbGetSessionByUserId(token);
-        if (session) {
-          const user = await dbFindUserById(session.userId);
-          if (user && user.status === 'active') return user;
-        }
-        const directUser = await dbFindUserById(token);
-        if (directUser && directUser.status === 'active') return directUser;
-      }
+    if (token.startsWith('sess_')) {
+      bearerSessionId = token;
     }
   }
 
-  // 4. Fallback: x-malvision-user-id header lookup
-  const headerUserId = (req.headers['x-malvision-user-id'] as string) || '';
-  if (headerUserId && headerUserId.startsWith('usr_')) {
-    const session = await dbGetSessionByUserId(headerUserId);
+  const explicitSessionId = cookieSessionId || headerSessionId || bearerSessionId;
+
+  // 1. If explicit session ID is provided, it MUST exist in DB (otherwise session was revoked or expired!)
+  if (explicitSessionId) {
+    const session = await dbGetSession(explicitSessionId);
     if (session) {
       const user = await dbFindUserById(session.userId);
       if (user && user.status === 'active') return user;
     }
-    const directUser = await dbFindUserById(headerUserId);
-    if (directUser && directUser.status === 'active') return directUser;
+    // Session explicitly provided but not found in DB = REVOKED / EXPIRED SESSION!
+    return null;
+  }
+
+  // 2. Fallback: If no session ID was provided at all, check user ID header/token ONLY if user has active sessions in DB
+  let fallbackUserId = '';
+  if (authHeader && authHeader.startsWith('Bearer usr_')) {
+    fallbackUserId = authHeader.substring(7).trim();
+  } else {
+    fallbackUserId = (req.headers['x-malvision-user-id'] as string) || '';
+  }
+
+  if (fallbackUserId && fallbackUserId.startsWith('usr_')) {
+    const activeSessions = await dbGetActiveSessionsForUser(fallbackUserId);
+    if (activeSessions && activeSessions.length > 0) {
+      const user = await dbFindUserById(fallbackUserId);
+      if (user && user.status === 'active') return user;
+    }
   }
 
   return null;

@@ -34,7 +34,7 @@ export function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-export async function apiCheckSession(): Promise<{ authenticated: boolean; user?: UserRecord; sessionId?: string }> {
+export async function apiCheckSession(): Promise<{ authenticated: boolean; user?: UserRecord; sessionId?: string; serverResponded?: boolean }> {
   try {
     const res = await fetch('/api/auth/session', {
       method: 'GET',
@@ -60,13 +60,16 @@ export async function apiCheckSession(): Promise<{ authenticated: boolean; user?
             failedLoginAttempts: 0,
             authVersion: 2,
           },
+          serverResponded: true,
         };
       }
+      return { authenticated: false, serverResponded: true };
     }
+    return { authenticated: false, serverResponded: true };
   } catch (e) {
     console.warn('Session check network error:', e);
   }
-  return { authenticated: false };
+  return { authenticated: false, serverResponded: false };
 }
 
 function extractApiErrorMessage(errObj: any, defaultMsg: string): string {

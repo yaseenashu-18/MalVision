@@ -51,6 +51,12 @@ export const AppContent: React.FC = () => {
         createActiveSession(userData);
         fetchServerScanHistory();
         fetchServerVisionHistory();
+      } else if (res.serverResponded) {
+        // Server explicitly declared session as unauthenticated / revoked
+        setUser(null);
+        destroyActiveSession();
+        clearActiveUserScansCache();
+        clearActiveVisionCache();
       } else {
         const local = getActiveSession();
         if (local && local.email) {
@@ -94,22 +100,13 @@ export const AppContent: React.FC = () => {
             createActiveSession(userData);
             fetchServerScanHistory();
             fetchServerVisionHistory();
-          } else {
-            const local = getActiveSession();
-            if (local && local.email) {
-              setUser({
-                id: local.id,
-                name: local.name,
-                email: local.email,
-                username: local.username,
-                avatar: local.avatar,
-                provider: local.provider,
-              });
-            } else {
-              setUser(null);
-              destroyActiveSession();
-              clearActiveUserScansCache();
-              clearActiveVisionCache();
+          } else if (res.serverResponded) {
+            setUser(null);
+            destroyActiveSession();
+            clearActiveUserScansCache();
+            clearActiveVisionCache();
+            if (window.location.hash !== '#/home') {
+              window.history.pushState(null, '', '#/home');
             }
           }
         });
@@ -144,9 +141,11 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('malvision_logout', handleGlobalLogout);
   }, []);
 
-  // Instant 0ms Session Revocation SSE Stream & 1s Poller ("sign out on spot")
+  // Instant On-The-Spot Session Revocation Verifier (No Page Refresh Required)
   useEffect(() => {
     if (!user) return;
+
+    let isChecking = false;
 
     const performSpotSignOut = () => {
       setUser(null);
@@ -161,39 +160,42 @@ export const AppContent: React.FC = () => {
     };
 
     const verifySessionOnSpot = async () => {
-      const res = await apiCheckSession();
-      if (!res.authenticated) {
-        performSpotSignOut();
+      if (isChecking) return;
+      isChecking = true;
+      try {
+        const res = await apiCheckSession();
+        if (!res.authenticated && res.serverResponded) {
+          console.log('[MalVision Security] Remote session revoked. Signing out on spot...');
+          performSpotSignOut();
+        }
+      } catch {
+        /* ignore network error */
+      } finally {
+        isChecking = false;
       }
     };
 
-    // 1. Real-time Server-Sent Events (0ms Instant Revocation Push)
-    let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource('/api/auth/session-stream');
-      eventSource.addEventListener('revoked', () => {
-        console.log('[MalVision Security] Session revoked by remote device. Signing out on spot...');
-        performSpotSignOut();
-      });
-      eventSource.onerror = () => {
-        /* Fallback to fast polling on SSE disconnect */
-      };
-    } catch {
-      /* ignore SSE unsupported */
-    }
+    // 1. Fast 800ms periodic verifier
+    const intervalId = setInterval(verifySessionOnSpot, 800);
 
-    // 2. Fast 1-second Poller & Window Focus Listener (Fallback)
-    const intervalId = setInterval(verifySessionOnSpot, 1000);
-    window.addEventListener('focus', verifySessionOnSpot);
-    document.addEventListener('visibilitychange', verifySessionOnSpot);
+    // 2. User activity & screen focus verifiers
+    const handleActivity = () => {
+      verifySessionOnSpot();
+    };
+
+    window.addEventListener('focus', handleActivity);
+    document.addEventListener('visibilitychange', handleActivity);
+    window.addEventListener('touchstart', handleActivity, { passive: true });
+    window.addEventListener('pointerdown', handleActivity, { passive: true });
+    window.addEventListener('scroll', handleActivity, { passive: true });
 
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
       clearInterval(intervalId);
-      window.removeEventListener('focus', verifySessionOnSpot);
-      document.removeEventListener('visibilitychange', verifySessionOnSpot);
+      window.removeEventListener('focus', handleActivity);
+      document.removeEventListener('visibilitychange', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+      window.removeEventListener('pointerdown', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
     };
   }, [user]);
 
