@@ -428,8 +428,8 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
-      // Generate 6-digit numeric OTP
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate 6-digit numeric OTP using CS-RNG
+      const otpCode = crypto.randomInt(100000, 1000000).toString();
       const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
 
       emailOtpStore.set(user.id, {
@@ -499,7 +499,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
-      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const resetCode = crypto.randomInt(100000, 1000000).toString();
       const resetHash = crypto.createHash('sha256').update(resetCode).digest('hex');
 
       resetPasswordStore.set(targetEmail, {
@@ -514,7 +514,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
 
       const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
-      const resetLink = `${proto}://${host}/#/reset-password?email=${encodeURIComponent(targetEmail)}&code=${resetCode}`;
+      const resetLink = `${proto}://${host}/#/reset-password?code=${resetCode}`;
 
       console.log(`[MalVision Auth API] Password reset code generated for ${targetEmail}: ${resetCode} (Link: ${resetLink})`);
 

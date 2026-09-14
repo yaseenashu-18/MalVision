@@ -16,8 +16,8 @@ const SMTP_HOST = getEnv('SMTP_HOST', 'smtp.gmail.com');
 const SMTP_PORT = parseInt(getEnv('SMTP_PORT', '587'), 10);
 const SMTP_USER = getEnv('SMTP_USER', 'support.malvisionai@gmail.com');
 const SMTP_PASSWORD = getEnv('SMTP_PASSWORD', 'recqnknnznozjlpp');
-const SMTP_FROM_EMAIL = getEnv('SMTP_FROM_EMAIL', 'support.malvisionai@gmail.com');
-const SMTP_FROM_NAME = getEnv('SMTP_FROM_NAME', 'MalVision Security');
+const SMTP_FROM_EMAIL = getEnv('MAIL_FROM_ADDRESS', getEnv('SMTP_FROM_EMAIL', 'support.malvisionai@gmail.com'));
+const SMTP_FROM_NAME = getEnv('MAIL_FROM_NAME', getEnv('SMTP_FROM_NAME', 'MalVision'));
 
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
@@ -52,10 +52,10 @@ function getLogoAttachment(): { attachments: any[]; logoSrc: string } {
               {
                 filename: 'malvision-logo.png',
                 content: buffer,
-                cid: 'malvision-logo@malvision.security',
+                cid: 'malvision-logo@malvision.ai',
               },
             ],
-            logoSrc: 'cid:malvision-logo@malvision.security',
+            logoSrc: 'cid:malvision-logo@malvision.ai',
           };
         }
       }
@@ -75,10 +75,10 @@ function getLogoAttachment(): { attachments: any[]; logoSrc: string } {
             {
               filename: 'malvision-logo.png',
               path: p,
-              cid: 'malvision-logo@malvision.security',
+              cid: 'malvision-logo@malvision.ai',
             },
           ],
-          logoSrc: 'cid:malvision-logo@malvision.security',
+          logoSrc: 'cid:malvision-logo@malvision.ai',
         };
       }
     }
@@ -90,21 +90,21 @@ function getLogoAttachment(): { attachments: any[]; logoSrc: string } {
 }
 
 /**
- * Shared MalVision Outer Shell & Header / Footer Layout
+ * Shared MalVision Outer Shell & Header / Footer Layout matching reference designs
  */
 function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: string): string {
   const { logoSrc } = getLogoAttachment();
 
   const logoHeaderHtml = logoSrc
     ? `<img src="${logoSrc}" alt="MalVision" height="28" style="display: block; height: 28px; width: auto; border: 0; outline: none;" />`
-    : `<table border="0" cellspacing="0" cellpadding="0">
+    : `<table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
         <tr>
-          <td valign="middle" style="padding-right: 8px;">
+          <td valign="middle" style="padding-right: 8px; vertical-align: middle;">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </td>
-          <td valign="middle" style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+          <td valign="middle" style="vertical-align: middle; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1;">
             MalVision
           </td>
         </tr>
@@ -115,29 +115,35 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MalVision Security</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>MalVision</title>
   <style>
     body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
     body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0b0c0e; }
+    @media only screen and (max-width: 600px) {
+      .email-card { width: 100% !important; max-width: 100% !important; border-radius: 20px !important; }
+      .card-padding { padding: 24px 20px !important; }
+      .main-panel-padding { padding: 28px 20px !important; }
+    }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0b0c0e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+<body style="margin: 0; padding: 0; background-color: #0b0c0e; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
   <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0b0c0e; table-layout: fixed;">
     <tr>
       <td align="center" style="padding: 40px 16px;">
         <!-- Main Email Card -->
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 32px; border-collapse: separate; overflow: hidden;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="email-card" style="max-width: 540px; background-color: #ffffff; border-radius: 30px; border-collapse: separate; overflow: hidden; margin: 0 auto;">
           <tr>
-            <td style="padding: 38px 40px 38px 40px;">
+            <td class="card-padding" style="padding: 38px 40px 36px 40px;">
               <!-- Header -->
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="left" valign="middle">
                     ${logoHeaderHtml}
                   </td>
-                  <td align="right" valign="middle" style="font-size: 13.5px; color: #1e293b; font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; white-space: nowrap;">
+                  <td align="right" valign="middle" style="font-size: 13.5px; color: #1e293b; font-weight: 400; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; white-space: nowrap;">
                     See the risk before you open it.
                   </td>
                 </tr>
@@ -149,24 +155,24 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
               <!-- Main Content Panel -->
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f2f4f7; border: 1px solid #e2e8f0; border-radius: 22px; border-collapse: separate; overflow: hidden;">
                 <tr>
-                  <td align="center" style="padding: 38px 32px 34px 32px;">
+                  <td align="center" class="main-panel-padding" style="padding: 38px 32px 34px 32px;">
                     ${contentHtml}
                   </td>
                 </tr>
               </table>
 
               <!-- Gap after main panel -->
-              <div style="height: 34px; line-height: 34px; font-size: 1px;">&nbsp;</div>
+              <div style="height: 28px; line-height: 28px; font-size: 1px;">&nbsp;</div>
 
               <!-- Footer -->
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td align="center" style="font-size: 13px; color: #64748b; font-weight: 400; text-align: center; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                  <td align="center" style="font-size: 13px; color: #64748b; font-weight: 400; text-align: center; line-height: 1.5; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                     <div style="margin-bottom: 6px;">
                       ${footerWarningHtml}
                     </div>
-                    <div style="color: #94a3b8;">
-                      &copy; 2026 MalVision Security. All rights reserved.
+                    <div style="color: #94a3b8; font-size: 12.5px;">
+                      &copy; 2026 MalVision. All rights reserved.
                     </div>
                   </td>
                 </tr>
@@ -182,14 +188,14 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
 }
 
 /**
- * Builds Email Verification / OTP HTML Template
+ * Builds Email Verification / OTP HTML Template matching Reference Image 1
  */
 export function buildVerificationEmailHtml(otp: string, expirationMinutes = 10): string {
   const contentHtml = `
-    <h1 style="margin: 0 0 12px 0; font-size: 26px; font-weight: 800; color: #0f172a; text-align: center; letter-spacing: -0.5px; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <h1 style="margin: 0 0 12px 0; font-size: 26px; font-weight: 800; color: #0f172a; text-align: center; letter-spacing: -0.5px; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       Verify your email
     </h1>
-    <p style="margin: 0 0 24px 0; font-size: 14.5px; color: #64748b; text-align: center; font-weight: 400; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 24px 0; font-size: 14.5px; color: #64748b; text-align: center; font-weight: 400; line-height: 1.4; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       Your MalVision verification code is below:
     </p>
 
@@ -202,7 +208,7 @@ export function buildVerificationEmailHtml(otp: string, expirationMinutes = 10):
       </tr>
     </table>
 
-    <p style="margin: 0; font-size: 13.5px; color: #64748b; text-align: center; font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <p style="margin: 0; font-size: 13.5px; color: #64748b; text-align: center; font-weight: 400; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       This code expires in ${expirationMinutes} minutes.
     </p>
   `;
@@ -213,14 +219,14 @@ export function buildVerificationEmailHtml(otp: string, expirationMinutes = 10):
 }
 
 /**
- * Builds Password Reset HTML Template
+ * Builds Password Reset HTML Template matching Reference Image 2
  */
 export function buildPasswordResetEmailHtml(resetUrl: string, expirationMinutes = 15, securityUrl = 'https://malvision.vercel.app/#/login'): string {
   const contentHtml = `
-    <h1 style="margin: 0 0 14px 0; font-size: 26px; font-weight: 800; color: #0f172a; text-align: center; letter-spacing: -0.5px; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <h1 style="margin: 0 0 14px 0; font-size: 26px; font-weight: 800; color: #0f172a; text-align: center; letter-spacing: -0.5px; line-height: 1.2; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       Reset your password
     </h1>
-    <p style="margin: 0 0 26px 0; font-size: 14.5px; color: #64748b; text-align: center; font-weight: 400; line-height: 1.55; max-width: 380px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <p style="margin: 0 0 26px 0; font-size: 14.5px; color: #64748b; text-align: center; font-weight: 400; line-height: 1.55; max-width: 380px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       We received a request to reset your MalVision<br />password. Click the button below to set a new<br />password:
     </p>
 
@@ -228,14 +234,14 @@ export function buildPasswordResetEmailHtml(resetUrl: string, expirationMinutes 
     <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 26px auto;">
       <tr>
         <td align="center" style="background-color: #7c8392; border-radius: 18px; padding: 0;">
-          <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 38px; font-size: 15.5px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.2;">
+          <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 38px; font-size: 15.5px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 18px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.2;">
             Set New Password
           </a>
         </td>
       </tr>
     </table>
 
-    <p style="margin: 0; font-size: 13.5px; color: #64748b; text-align: center; font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <p style="margin: 0; font-size: 13.5px; color: #64748b; text-align: center; font-weight: 400; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       This password reset link expires in ${expirationMinutes} minutes.
     </p>
   `;
@@ -248,7 +254,7 @@ export function buildPasswordResetEmailHtml(resetUrl: string, expirationMinutes 
 /**
  * Sends 6-digit OTP verification email from support.malvisionai@gmail.com
  */
-export async function sendVerificationOtpEmail(toEmail: string, otp: string, userName?: string, expirationMinutes = 10): Promise<boolean> {
+export async function sendVerificationOtpEmail(toEmail: string, otp: string, _userName?: string, expirationMinutes = 10): Promise<boolean> {
   try {
     const fromAddress = `"${SMTP_FROM_NAME}" <${SMTP_FROM_EMAIL}>`;
     const htmlContent = buildVerificationEmailHtml(otp, expirationMinutes);
@@ -258,12 +264,12 @@ export async function sendVerificationOtpEmail(toEmail: string, otp: string, use
       from: fromAddress,
       to: toEmail,
       subject: 'Verify your MalVision email',
-      text: `MalVision - Verify your email\n\nYour MalVision verification code is below:\n\n${otp}\n\nThis code expires in ${expirationMinutes} minutes.\nIf you didn't request this email, you can safely ignore it.\n© 2026 MalVision Security. All rights reserved.`,
+      text: `MalVision - Verify your email\n\nYour MalVision verification code is below:\n\n${otp}\n\nThis code expires in ${expirationMinutes} minutes.\nIf you didn't request this email, you can safely ignore it.\n© 2026 MalVision. All rights reserved.`,
       html: htmlContent,
       attachments,
     });
 
-    console.log(`[EmailService] Verification OTP email successfully sent to ${toEmail}`);
+    console.log(`[EmailService] Verification OTP email successfully sent to ${toEmail} from ${fromAddress}`);
     return true;
   } catch (err) {
     console.error('[EmailService] Failed to send OTP email:', err);
@@ -274,27 +280,27 @@ export async function sendVerificationOtpEmail(toEmail: string, otp: string, use
 /**
  * Sends Password Reset link / code email from support.malvisionai@gmail.com
  */
-export async function sendPasswordResetEmail(toEmail: string, resetCode: string, resetLink?: string, userName?: string, expirationMinutes = 15): Promise<boolean> {
+export async function sendPasswordResetEmail(toEmail: string, resetCode: string, resetLink?: string, _userName?: string, expirationMinutes = 15): Promise<boolean> {
   try {
     const fromAddress = `"${SMTP_FROM_NAME}" <${SMTP_FROM_EMAIL}>`;
-    const targetUrl = resetLink || `https://malvision.vercel.app/#/reset-password?email=${encodeURIComponent(toEmail)}&code=${resetCode}`;
-    const htmlContent = buildPasswordResetEmailHtml(targetUrl, expirationMinutes);
+    const targetUrl = resetLink || `https://malvision.vercel.app/#/reset-password?code=${resetCode}`;
+    const securityUrl = `https://malvision.vercel.app/#/login`;
+    const htmlContent = buildPasswordResetEmailHtml(targetUrl, expirationMinutes, securityUrl);
     const { attachments } = getLogoAttachment();
 
     await transporter.sendMail({
       from: fromAddress,
       to: toEmail,
       subject: 'Reset your MalVision password',
-      text: `MalVision - Reset your password\n\nWe received a request to reset your MalVision password. Click the link below to set a new password:\n${targetUrl}\n\nThis password reset link expires in ${expirationMinutes} minutes.\nIf you didn't request a password reset, then secure account.\n© 2026 MalVision Security. All rights reserved.`,
+      text: `MalVision - Reset your password\n\nWe received a request to reset your MalVision password. Click the link below to set a new password:\n${targetUrl}\n\nThis password reset link expires in ${expirationMinutes} minutes.\nIf you didn't request a password reset, then secure account: ${securityUrl}\n© 2026 MalVision. All rights reserved.`,
       html: htmlContent,
       attachments,
     });
 
-    console.log(`[EmailService] Password Reset email successfully sent to ${toEmail}`);
+    console.log(`[EmailService] Password Reset email successfully sent to ${toEmail} from ${fromAddress}`);
     return true;
   } catch (err) {
     console.error('[EmailService] Failed to send Password Reset email:', err);
     return false;
   }
 }
-
