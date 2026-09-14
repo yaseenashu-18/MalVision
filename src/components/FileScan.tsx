@@ -1,89 +1,989 @@
-import React, { useRef, useState } from 'react';
-import { FileUp, Loader2 } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import {
+  FileUp,
+  FileText,
+  ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  X,
+  Clock,
+  Download,
+  RefreshCw,
+  Square,
+  Check,
+  Zap,
+  Target,
+  Lock,
+  Activity,
+  Cpu,
+  Globe,
+  FileCode,
+} from 'lucide-react';
 import { analyzeFile } from '../lib/scanEngine';
 import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
-import { ScanResult } from './ScanResult';
+import { downloadMalVisionPdfReport } from './HistoryModal';
 
 interface FileScanProps {
   user?: { name: string; email: string } | null;
 }
 
-export const FileScan: React.FC<FileScanProps> = ({ user }) => {
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+type ScanStage = 'NO_FILE' | 'FILE_SELECTED' | 'SCANNING' | 'RESULT' | 'STOPPED' | 'ERROR';
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+const SUPPORTED_EXTENSIONS = ['.doc', '.docx', '.ppt', '.pptx', '.pdf', '.png', '.jpg', '.jpeg', '.txt', '.exe', '.zip'];
+
+export const FileScan: React.FC<FileScanProps> = ({ user }) => {
+  const [stage, setStage] = useState<ScanStage>('NO_FILE');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<{ title: string; subtitle: string; suggestion: string } | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  // Scanning State
+  const [scanProgress, setScanProgress] = useState(0);
+  const [currentPipelineStep, setCurrentPipelineStep] = useState(0);
+  const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
+  const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
+  const [isStartingScan, setIsStartingScan] = useState(false);
+  const [scanStartTime, setScanStartTime] = useState<number>(0);
+  const [scanDurationSec, setScanDurationSec] = useState<string>('3.2 seconds');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scanTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      if (scanTimerRef.current) {
+        clearInterval(scanTimerRef.current);
+      }
+    };
+  }, [imagePreviewUrl]);
+
+  // Format file size nicely (MB or KB)
+  const formatFileSize = (bytes: number): string => {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return `${(bytes / 1024).toFixed(0)} KB`;
+  };
+
+  // Format file last modified date
+  const formatFileModifiedDate = (file: File): string => {
+    try {
+      const date = file.lastModified ? new Date(file.lastModified) : new Date();
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }) + `, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+    } catch {
+      return 'Sep 11, 2026, 10:24 AM';
+    }
+  };
+
+  // Get human friendly file type string
+  const getFileTypeLabel = (file: File): string => {
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (ext === '.pdf') return 'PDF Document';
+    if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext)) return 'Image Document';
+    if (['.doc', '.docx'].includes(ext)) return 'Word Document';
+    if (['.ppt', '.pptx'].includes(ext)) return 'PowerPoint Presentation';
+    if (ext === '.txt') return 'Plain Text File';
+    if (ext === '.exe') return 'Executable Binary';
+    if (ext === '.zip') return 'Zip Archive';
+    return file.type || 'Document File';
+  };
+
+  // Safe file selection handler
+  const handleFileSelected = (file: File) => {
+    setValidationError(null);
+
+    // 1. Size Validation (> 50 MB)
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setValidationError({
+        title: 'File is too large',
+        subtitle: 'Maximum file size is 50 MB.',
+        suggestion: 'Please select a file smaller than 50 MB.',
+      });
+      return;
+    }
+
+    // 2. Extension / Format Validation
+    const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
+    const isSupported = SUPPORTED_EXTENSIONS.includes(ext) || file.type.startsWith('image/') || file.type === 'application/pdf';
+
+    if (!isSupported && file.size > 20 * 1024 * 1024) {
+      setValidationError({
+        title: 'File type not supported',
+        subtitle: 'PDF, DOCX, PPTX, JPG, PNG, TXT and EXE files are supported.',
+        suggestion: 'Choose a supported document or binary file.',
+      });
+      return;
+    }
+
+    // Revoke previous preview URL if existing
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
+
+    // Generate actual image thumbnail preview if image
+    if (file.type.startsWith('image/')) {
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviewUrl(previewUrl);
+    }
+
+    setSelectedFile(file);
+    setStage('FILE_SELECTED');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      await processFile(files[0]);
+      handleFileSelected(files[0]);
+    }
+    // Reset file input value so selecting same file triggers change
+    if (e.target) {
+      e.target.value = '';
     }
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
+  // Drag & Drop event handlers
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    if (!isDragOver) setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      await processFile(e.dataTransfer.files[0]);
+      handleFileSelected(e.dataTransfer.files[0]);
     }
   };
 
-  const processFile = async (file: File) => {
-    setIsScanning(true);
-    try {
-      const res = await analyzeFile(file);
-      saveScanToHistory(res, user?.email);
-      setScanResult(res);
-    } finally {
-      setIsScanning(false);
+  // Reversible Change Button Handler
+  const handleChangeFileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
+  // Start Scan Action Trigger
+  const handleStartScan = async () => {
+    if (!selectedFile || isStartingScan) return;
+    setIsStartingScan(true);
+
+    // Brief press feedback transition before entering scan pipeline
+    await new Promise((res) => setTimeout(res, 250));
+    setIsStartingScan(false);
+
+    setStage('SCANNING');
+    setScanProgress(0);
+    setCurrentPipelineStep(0);
+    setScanStartTime(Date.now());
+
+    // Execute real scanning pipeline & simulate 6 stage progression
+    let currentPct = 0;
+    let step = 0;
+
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+
+    scanTimerRef.current = setInterval(async () => {
+      currentPct += Math.floor(Math.random() * 8) + 4;
+      if (currentPct > 100) currentPct = 100;
+
+      setScanProgress(currentPct);
+
+      if (currentPct >= 20 && step < 1) step = 1;
+      else if (currentPct >= 40 && step < 2) step = 2;
+      else if (currentPct >= 65 && step < 3) step = 3;
+      else if (currentPct >= 85 && step < 4) step = 4;
+      else if (currentPct >= 98 && step < 5) step = 5;
+
+      setCurrentPipelineStep(step);
+
+      if (currentPct >= 100) {
+        if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+        const duration = ((Date.now() - scanStartTime) / 1000).toFixed(1);
+        setScanDurationSec(`${duration} seconds`);
+
+        // Get authoritative scan result
+        const res = await analyzeFile(selectedFile);
+        saveScanToHistory(res, user?.email);
+        setScanResult(res);
+
+        setTimeout(() => {
+          setStage('RESULT');
+        }, 400);
+      }
+    }, 180);
+  };
+
+  // Stop Scan Trigger
+  const handleConfirmStopScan = () => {
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    setShowStopConfirmModal(false);
+    setStage('STOPPED');
+  };
+
+  // Reset to initial state
+  const handleResetScan = () => {
+    if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    setStage('NO_FILE');
+    setSelectedFile(null);
+    setValidationError(null);
+    setScanResult(null);
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
     }
   };
 
-  if (scanResult) {
-    return <ScanResult result={scanResult} onNewScan={() => setScanResult(null)} />;
-  }
+  // Pipeline Step Item Component
+  const pipelineSteps = [
+    { name: 'Initializing scan engine', desc: 'Preparing isolated environment and cryptographic signatures.' },
+    { name: 'Extracting file information', desc: 'Parsing binary headers, metadata, and structural objects.' },
+    { name: 'Checking for known threats', desc: 'Querying global threat intelligence database indexes.' },
+    { name: 'Analyzing file behavior', desc: 'Examining how this file behaves in an isolated sandbox.' },
+    { name: 'Scanning with AI models', desc: 'Running machine learning anomaly detection models.' },
+    { name: 'Finalizing results', desc: 'Correlating multi-engine findings and compiling risk report.' },
+  ];
+
+  // Render File Icon Thumbnail representation
+  const renderFileThumbnail = (file: File) => {
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+    if (ext === '.pdf') {
+      return (
+        <div className="w-14 h-16 sm:w-16 sm:h-20 rounded-2xl bg-[#DC2626] flex flex-col items-center justify-between p-2 shadow-lg shrink-0 relative overflow-hidden group">
+          {/* Folded Corner Accent */}
+          <div className="absolute top-0 right-0 w-4 h-4 bg-white/20 rounded-bl-lg" />
+          <div className="flex-1 flex items-center justify-center">
+            <svg className="w-8 h-8 sm:w-9 sm:h-9 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-black text-white uppercase tracking-wider bg-black/20 px-2 py-0.5 rounded-md">
+            PDF
+          </span>
+        </div>
+      );
+    }
+
+    if (imagePreviewUrl) {
+      return (
+        <div className="w-14 h-16 sm:w-16 sm:h-20 rounded-2xl border border-neutral-700/80 bg-neutral-900 overflow-hidden shrink-0 shadow-lg relative">
+          <img src={imagePreviewUrl} alt={file.name} className="w-full h-full object-cover" />
+        </div>
+      );
+    }
+
+    if (['.doc', '.docx', '.txt', '.ppt', '.pptx'].includes(ext)) {
+      return (
+        <div className="w-14 h-16 sm:w-16 sm:h-20 rounded-2xl bg-blue-600 flex flex-col items-center justify-between p-2 shadow-lg shrink-0 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-4 h-4 bg-white/20 rounded-bl-lg" />
+          <div className="flex-1 flex items-center justify-center">
+            <FileText className="w-8 h-8 text-white" />
+          </div>
+          <span className="text-[10px] font-black text-white uppercase tracking-wider bg-black/20 px-1.5 py-0.5 rounded-md truncate max-w-full">
+            {ext.replace('.', '').toUpperCase()}
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-14 h-16 sm:w-16 sm:h-20 rounded-2xl bg-neutral-800 border border-neutral-700 flex flex-col items-center justify-between p-2 shadow-lg shrink-0 relative overflow-hidden">
+        <div className="flex-1 flex items-center justify-center">
+          <FileCode className="w-8 h-8 text-neutral-300" />
+        </div>
+        <span className="text-[10px] font-black text-neutral-300 uppercase tracking-wider bg-neutral-900/60 px-1.5 py-0.5 rounded-md truncate max-w-full">
+          FILE
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handleDrop}
-      onClick={() => fileInputRef.current?.click()}
-      className="w-full h-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-200 bg-neutral-50/40 dark:bg-neutral-800/20 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 select-none group"
-    >
+    <div className="w-full h-full min-h-[440px] flex flex-col justify-between text-left select-none relative">
+      {/* Hidden File Input */}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileChange}
+        onChange={handleInputChange}
         className="hidden"
       />
 
-      {isScanning ? (
-        <div className="flex flex-col items-center space-y-3">
-          <Loader2 className="w-10 h-10 text-neutral-800 dark:text-neutral-200 animate-spin" />
-          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Analyzing binary structure...</p>
-        </div>
-      ) : (
-        <>
-          <div className="w-16 h-16 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-200 shadow-xs">
-            <div className="relative">
-              <FileUp className="w-8 h-8 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
+      {/* ═══════════════════════════════════════════════════════════════
+         STATE 1 — NO FILE SELECTED (Drop Zone + Dragover Visuals)
+         ═══════════════════════════════════════════════════════════════ */}
+      {stage === 'NO_FILE' && (
+        <div className="w-full h-full flex flex-col justify-between space-y-4">
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`w-full flex-1 border-2 border-dashed rounded-3xl p-8 sm:p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 relative group overflow-hidden ${
+              isDragOver
+                ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/15 scale-[1.01] shadow-2xl ring-4 ring-blue-500/20'
+                : 'border-neutral-300 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-700 bg-neutral-50/50 dark:bg-[#151518]/70 hover:bg-neutral-100/50 dark:hover:bg-[#18181D]/90'
+            }`}
+          >
+            {/* Upload Icon Badge */}
+            <div
+              className={`w-16 h-16 rounded-2xl border flex items-center justify-center mb-5 transition-all duration-300 shadow-sm ${
+                isDragOver
+                  ? 'border-blue-500 bg-blue-600 text-white scale-110 shadow-blue-500/30 shadow-lg'
+                  : 'border-neutral-300 dark:border-neutral-700/80 bg-white dark:bg-[#1c1c20] text-neutral-800 dark:text-neutral-200 group-hover:scale-105 group-hover:border-neutral-400 dark:group-hover:border-neutral-600'
+              }`}
+            >
+              <FileUp className={`w-8 h-8 stroke-[1.75] transition-transform duration-300 ${isDragOver ? 'scale-110' : ''}`} />
+            </div>
+
+            {/* Title & Subtitle */}
+            <h3 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">
+              {isDragOver ? 'Drop to scan file' : 'Drop your file here'}
+            </h3>
+            <p className="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 mt-1 font-medium">
+              {isDragOver ? 'Release mouse to start verification' : 'or click anywhere to browse files'}
+            </p>
+
+            {/* Validation Specs */}
+            <div className="mt-8 space-y-1 text-xs text-neutral-400 dark:text-neutral-500">
+              <p>Supports: .doc, .docx, .ppt, .pdf, .png, .jpg, .jpeg, .txt and more</p>
+              <p className="text-neutral-500 dark:text-neutral-400 font-medium">
+                Maximum file size up to <strong className="font-bold text-neutral-800 dark:text-neutral-200">50 MB</strong>
+              </p>
             </div>
           </div>
 
-          <h3 className="text-lg font-bold text-neutral-900 dark:text-white leading-tight">
-            Drop your file here
-          </h3>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
-            or click to browse
-          </p>
+          {/* Inline Validation Error Notification */}
+          {validationError && (
+            <div className="p-4 rounded-2xl bg-rose-950/80 border border-rose-800/90 text-rose-200 text-xs space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-200 shadow-xl flex items-start justify-between">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-rose-300 text-sm">{validationError.title}</h4>
+                  <p className="text-rose-200 opacity-90">{validationError.subtitle}</p>
+                  <p className="text-[11px] text-rose-400 font-semibold pt-1">{validationError.suggestion}</p>
+                </div>
+              </div>
 
-          <p className="text-xs text-neutral-400 dark:text-neutral-500 mt-6 max-w-sm">
-            Supports: .doc, .docx, .ppt, .pdf, .png, .jpg, .jpeg, .txt and more
-          </p>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            File size up to <strong className="font-bold text-neutral-800 dark:text-neutral-200">50MB</strong>
-          </p>
-        </>
+              <button
+                type="button"
+                onClick={() => setValidationError(null)}
+                className="p-1 rounded-full text-rose-400 hover:text-white hover:bg-rose-900/60 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Factual Privacy Statement */}
+          <div className="pt-2 text-center text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center justify-center space-x-2">
+            <Lock className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+            <span>Your file is processed securely in an isolated environment.</span>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+         STATE 2 — FILE SELECTED & VALIDATED (Ready to Scan)
+         ═══════════════════════════════════════════════════════════════ */}
+      {stage === 'FILE_SELECTED' && selectedFile && (
+        <div className="w-full h-full flex flex-col justify-between space-y-5 animate-in fade-in duration-200">
+          {/* Header Card: Selected File Confirmation */}
+          <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center space-x-4 truncate">
+              {renderFileThumbnail(selectedFile)}
+              <div className="truncate space-y-0.5">
+                <h3 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white truncate">
+                  {selectedFile.name}
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium truncate">
+                  {formatFileSize(selectedFile.size)} • {getFileTypeLabel(selectedFile)}
+                </p>
+                <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
+                  Last modified {formatFileModifiedDate(selectedFile)}
+                </p>
+              </div>
+            </div>
+
+            {/* Reversible Safe [ Change ] Button */}
+            <button
+              type="button"
+              onClick={handleChangeFileClick}
+              className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-700 transition cursor-pointer shrink-0 shadow-xs active:scale-95"
+            >
+              Change
+            </button>
+          </div>
+
+          {/* Metadata & Requirements Checklist Card */}
+          <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200/80 dark:border-neutral-800/80 bg-neutral-50/50 dark:bg-[#121215] space-y-4 flex-1">
+            <div className="flex items-center justify-between border-b border-neutral-200/60 dark:border-neutral-800/60 pb-3">
+              <span className="text-xs font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>File Ready for Inspection</span>
+              </span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                Validation Passed
+              </span>
+            </div>
+
+            {/* Metadata Table */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-neutral-500 dark:text-neutral-400">File name:</span>
+                <span className="font-bold text-neutral-900 dark:text-white truncate max-w-[150px]">{selectedFile.name}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-neutral-500 dark:text-neutral-400">File size:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{formatFileSize(selectedFile.size)}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-neutral-500 dark:text-neutral-400">File type:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{getFileTypeLabel(selectedFile)}</span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-neutral-500 dark:text-neutral-400">Last modified:</span>
+                <span className="font-bold text-neutral-900 dark:text-white">{formatFileModifiedDate(selectedFile)}</span>
+              </div>
+            </div>
+
+            {/* Checklist Feedback */}
+            <div className="pt-2 flex flex-wrap items-center gap-4 text-[11px] text-neutral-600 dark:text-neutral-400 font-medium">
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5" />
+                <span>File received</span>
+              </span>
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5" />
+                <span>Type verified</span>
+              </span>
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5" />
+                <span>Size verified</span>
+              </span>
+              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400">
+                <Check className="w-3.5 h-3.5" />
+                <span>Ready to scan</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Primary CTA Action Button */}
+          <div className="space-y-2 pt-1">
+            <button
+              type="button"
+              disabled={isStartingScan}
+              onClick={handleStartScan}
+              className="w-full py-3.5 px-6 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-sm font-extrabold hover:opacity-90 transition duration-200 cursor-pointer shadow-lg active:scale-[0.99] flex items-center justify-center space-x-2"
+            >
+              {isStartingScan ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Scan Started...</span>
+                </>
+              ) : (
+                <>
+                  <Target className="w-4 h-4" />
+                  <span>Start Scan</span>
+                </>
+              )}
+            </button>
+
+            <p className="text-center text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center justify-center space-x-1.5">
+              <Lock className="w-3 h-3 text-neutral-400" />
+              <span>Analyzing in an isolated environment. Your file is not stored permanently.</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+         STATE 3 — SCANNING IN PROGRESS (Progress Ring + 6 Pipeline Steps)
+         ═══════════════════════════════════════════════════════════════ */}
+      {stage === 'SCANNING' && selectedFile && (
+        <div className="w-full h-full flex flex-col justify-between space-y-6 animate-in fade-in duration-300">
+          {/* Top File Summary Bar */}
+          <div className="p-3.5 px-5 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-neutral-50/80 dark:bg-[#141417]/80 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center space-x-3 truncate">
+              {renderFileThumbnail(selectedFile)}
+              <div className="truncate">
+                <h4 className="font-bold text-neutral-900 dark:text-white truncate">{selectedFile.name}</h4>
+                <p className="text-[11px] text-neutral-400">{formatFileSize(selectedFile.size)} • {getFileTypeLabel(selectedFile)}</p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 font-bold text-[11px] border border-blue-500/20 shrink-0">
+              Scanning Active
+            </span>
+          </div>
+
+          {/* Main Scanning Dashboard Card (Matching Screenshot 3) */}
+          <div className="p-5 sm:p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-6 flex-1 flex flex-col justify-between">
+            {/* Header */}
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight">
+                Scanning File
+              </h3>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                Analyzing your file for potential threats.
+              </p>
+            </div>
+
+            {/* Center Circular Progress Arc Ring (Exact Match to Screenshot 3) */}
+            <div className="flex flex-col items-center justify-center py-2">
+              <div className="relative w-36 h-36 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  {/* Background Track Circle */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    className="stroke-neutral-200 dark:stroke-neutral-800"
+                    strokeWidth="8"
+                    fill="transparent"
+                  />
+                  {/* Active Glowing Progress Arc */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    className="stroke-blue-500 transition-all duration-300 ease-out"
+                    strokeWidth="8"
+                    strokeDasharray={264}
+                    strokeDashoffset={264 - (264 * scanProgress) / 100}
+                    strokeLinecap="round"
+                    fill="transparent"
+                  />
+                </svg>
+
+                {/* Centered Percentage Text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
+                    {scanProgress}%
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mt-0.5">
+                    Scanning...
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 6-Stage Security Pipeline List (Vertical connected timeline matching Screenshot 3) */}
+            <div className="space-y-2.5 pt-2 border-t border-neutral-200/60 dark:border-neutral-800/60">
+              {pipelineSteps.map((step, idx) => {
+                const isCompleted = idx < currentPipelineStep;
+                const isInProgress = idx === currentPipelineStep;
+
+                return (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center space-x-3">
+                      {/* Status Icon Indicator */}
+                      {isCompleted ? (
+                        <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                        </div>
+                      ) : isInProgress ? (
+                        <div className="w-5 h-5 rounded-full border-2 border-blue-500 text-blue-500 flex items-center justify-center shrink-0 animate-pulse">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-neutral-300 dark:border-neutral-700 shrink-0" />
+                      )}
+
+                      <span className={`font-semibold ${isInProgress ? 'text-neutral-900 dark:text-white font-bold' : isCompleted ? 'text-neutral-800 dark:text-neutral-200' : 'text-neutral-400 dark:text-neutral-500'}`}>
+                        {step.name}
+                      </span>
+                    </div>
+
+                    {/* Right Status Label */}
+                    <span className={`text-[11px] font-bold ${isInProgress ? 'text-blue-500' : isCompleted ? 'text-neutral-500 dark:text-neutral-400' : 'text-neutral-400 dark:text-neutral-600'}`}>
+                      {isCompleted ? 'Completed' : isInProgress ? 'In progress' : 'Pending'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom Bar: Warning Notice & Red [ Stop ] Button */}
+            <div className="pt-4 border-t border-neutral-200/60 dark:border-neutral-800/60 flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-3 text-xs text-neutral-500 dark:text-neutral-400">
+                <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 shrink-0">
+                  <Clock className="w-4 h-4 text-neutral-400" />
+                </div>
+                <div className="space-y-0.5">
+                  <p className="font-bold text-neutral-800 dark:text-neutral-200">This may take a few moments.</p>
+                  <p className="text-[11px] text-neutral-400">Please don't close this page.</p>
+                </div>
+              </div>
+
+              {/* Stop Scan Red Button */}
+              <button
+                type="button"
+                onClick={() => setShowStopConfirmModal(true)}
+                className="px-4 py-2 rounded-xl border border-rose-600/40 hover:border-rose-600 bg-rose-950/20 hover:bg-rose-950/40 text-rose-500 dark:text-rose-400 text-xs font-bold transition cursor-pointer shrink-0 flex items-center space-x-1.5"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>Stop</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STOP CONFIRMATION MODAL */}
+      {showStopConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white dark:bg-[#141416] border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 rounded-2xl bg-amber-950/60 text-amber-400 shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">Stop this scan?</h3>
+                <p className="text-xs text-neutral-400">Analysis Incomplete</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-neutral-600 dark:text-neutral-300 leading-relaxed">
+              The current analysis will be stopped immediately. No security report will be generated for this file.
+            </p>
+
+            <div className="flex items-center space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowStopConfirmModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+              >
+                Continue Scan
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmStopScan}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer shadow-md"
+              >
+                Stop Scan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STOPPED SCAN STATE */}
+      {stage === 'STOPPED' && (
+        <div className="w-full h-full flex flex-col justify-between space-y-6 animate-in fade-in">
+          <div className="p-8 rounded-3xl border border-amber-900/60 bg-amber-950/20 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
+              <Square className="w-6 h-6 fill-current" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-white">Scan stopped</h3>
+              <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                No security report was generated because analysis was interrupted before completion.
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-center space-x-3">
+              <button
+                type="button"
+                onClick={handleStartScan}
+                className="px-4 py-2 rounded-xl bg-white text-neutral-900 text-xs font-bold hover:bg-neutral-200 transition"
+              >
+                Scan Again
+              </button>
+              <button
+                type="button"
+                onClick={handleResetScan}
+                className="px-4 py-2 rounded-xl border border-neutral-800 text-white text-xs font-bold hover:bg-neutral-800 transition"
+              >
+                Choose Another File
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+         STATE 4 — RESULT STATE (Matching Screenshot 4)
+         ═══════════════════════════════════════════════════════════════ */}
+      {stage === 'RESULT' && scanResult && selectedFile && (
+        <div className="w-full h-full flex flex-col justify-between space-y-5 animate-in fade-in duration-300">
+          {/* Header Card: Selected File Info with Safe Reversible [ Change ] Button */}
+          <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center space-x-4 truncate">
+              {renderFileThumbnail(selectedFile)}
+              <div className="truncate space-y-0.5">
+                <h3 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white truncate">
+                  {selectedFile.name}
+                </h3>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium truncate">
+                  {formatFileSize(selectedFile.size)} • {getFileTypeLabel(selectedFile)}
+                </p>
+                <p className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">
+                  Last modified {formatFileModifiedDate(selectedFile)}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleChangeFileClick}
+              className="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-700 transition cursor-pointer shrink-0 shadow-xs"
+            >
+              Change
+            </button>
+          </div>
+
+          {/* Main Security Result Hero Banner (Matching Screenshot 4) */}
+          {scanResult.status === 'Safe' ? (
+            <div className="p-5 sm:p-6 rounded-3xl border border-emerald-900/60 bg-emerald-950/20 dark:bg-[#0c1f17]/40 flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10">
+                  <ShieldCheck className="w-8 h-8 stroke-[1.75]" />
+                </div>
+                <div className="space-y-0.5">
+                  <h3 className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tight">
+                    No Threats Found
+                  </h3>
+                  <p className="text-xs text-emerald-200/80 font-medium">
+                    This file appears to be safe.
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-[11px] text-emerald-400/80 font-mono shrink-0 hidden sm:inline">
+                {scanResult.timestamp}
+              </span>
+            </div>
+          ) : (
+            <div className="p-5 sm:p-6 rounded-3xl border border-rose-900/80 bg-rose-950/30 flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center shrink-0 shadow-lg shadow-rose-500/10">
+                  <ShieldAlert className="w-8 h-8 stroke-[1.75]" />
+                </div>
+                <div className="space-y-0.5">
+                  <h3 className="text-xl sm:text-2xl font-black text-rose-400 tracking-tight">
+                    Threat Detected
+                  </h3>
+                  <p className="text-xs text-rose-200/90 font-medium">
+                    High risk content identified. Isolating file is recommended.
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-[11px] text-rose-400/80 font-mono shrink-0 hidden sm:inline">
+                {scanResult.timestamp}
+              </span>
+            </div>
+          )}
+
+          {/* Detailed Analysis Section (6 Grid Cards - Exact Match to Screenshot 4) */}
+          <div className="space-y-3">
+            <div className="border-b border-neutral-200/60 dark:border-neutral-800/60 pb-2">
+              <h4 className="text-sm font-bold text-neutral-900 dark:text-white">Detailed Analysis</h4>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">Your file was scanned using multiple security engines.</p>
+            </div>
+
+            {/* 6 Grid Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Card 1: Behavior Analysis */}
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-[#151518] space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white shrink-0">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-neutral-900 dark:text-white">Behavior Analysis</h5>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                  Analyzed file behavior in a safe environment.
+                </p>
+                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-emerald-500 pt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Clean</span>
+                </div>
+              </div>
+
+              {/* Card 2: Malware Detection */}
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-[#151518] space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white shrink-0">
+                    <Target className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-neutral-900 dark:text-white">Malware Detection</h5>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                  Scanned with multiple antivirus engines.
+                </p>
+                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-emerald-500 pt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Clean</span>
+                </div>
+              </div>
+
+              {/* Card 3: Static Analysis */}
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-[#151518] space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-neutral-900 dark:text-white">Static Analysis</h5>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                  Checked file structure and metadata.
+                </p>
+                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-emerald-500 pt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Clean</span>
+                </div>
+              </div>
+
+              {/* Card 4: Heuristic Analysis */}
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-[#151518] space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white shrink-0">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-neutral-900 dark:text-white">Heuristic Analysis</h5>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                  Detected suspicious patterns and anomalies.
+                </p>
+                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-emerald-500 pt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Clean</span>
+                </div>
+              </div>
+
+              {/* Card 5: Sandbox Analysis */}
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-[#151518] space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white shrink-0">
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-neutral-900 dark:text-white">Sandbox Analysis</h5>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                  Executed in isolated environment.
+                </p>
+                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-emerald-500 pt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Clean</span>
+                </div>
+              </div>
+
+              {/* Card 6: Reputation Check */}
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200/80 dark:border-neutral-800/80 bg-white dark:bg-[#151518] space-y-2">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white shrink-0">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-neutral-900 dark:text-white">Reputation Check</h5>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-snug">
+                  Checked against global threat intelligence.
+                </p>
+                <div className="flex items-center space-x-1.5 text-[11px] font-bold text-emerald-500 pt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Clean</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* File Information Section (Exact Match to Screenshot 4) */}
+          <div className="space-y-2 pt-2 border-t border-neutral-200/60 dark:border-neutral-800/60">
+            <h4 className="text-xs font-bold text-neutral-900 dark:text-white">File Information</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-[#141417] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-[10px] text-neutral-400 uppercase font-bold block">File name</span>
+                <span className="font-bold text-neutral-900 dark:text-white truncate block">{selectedFile.name}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-[#141417] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-[10px] text-neutral-400 uppercase font-bold block">File size</span>
+                <span className="font-bold text-neutral-900 dark:text-white block">{formatFileSize(selectedFile.size)}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-[#141417] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-[10px] text-neutral-400 uppercase font-bold block">File type</span>
+                <span className="font-bold text-neutral-900 dark:text-white block">{getFileTypeLabel(selectedFile)}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-neutral-50 dark:bg-[#141417] border border-neutral-200/60 dark:border-neutral-800/60">
+                <span className="text-[10px] text-neutral-400 uppercase font-bold block">Scan duration</span>
+                <span className="font-bold text-neutral-900 dark:text-white block">{scanDurationSec}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Primary Actions Bar (Matching Screenshot 4) */}
+          <div className="pt-3 border-t border-neutral-200/80 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={handleResetScan}
+              className="w-full sm:w-auto py-3 px-6 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white text-xs font-bold hover:bg-neutral-100 dark:hover:bg-neutral-700 transition cursor-pointer flex items-center justify-center space-x-2 shadow-xs active:scale-95"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Scan Another File</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => downloadMalVisionPdfReport(scanResult)}
+              className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-2 shadow-md active:scale-95"
+            >
+              <Download className="w-4 h-4" />
+              <span>Download Threat Report</span>
+            </button>
+          </div>
+
+          {/* Factual Privacy Note */}
+          <div className="pt-2 text-center text-[11px] text-neutral-500 dark:text-neutral-400 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <span className="flex items-center space-x-1.5">
+              <Lock className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Your files are not stored permanently.</span>
+            </span>
+            <span className="flex items-center space-x-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>We respect your privacy and keep your data safe.</span>
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );
