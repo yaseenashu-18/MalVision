@@ -502,15 +502,19 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       const resetCode = crypto.randomInt(100000, 1000000).toString();
       const resetHash = crypto.createHash('sha256').update(resetCode).digest('hex');
 
-      resetPasswordStore.set(targetEmail, {
+      const resetRecord: ResetPasswordRecord = {
         email: targetEmail,
         userId: targetUser.id,
         resetHash,
         createdAt: Date.now(),
-        expiresAt: Date.now() + 15 * 60 * 1000,
+        expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes validity
         attempts: 0,
         lastSentAt: Date.now(),
-      });
+      };
+
+      resetPasswordStore.set(targetEmail, resetRecord);
+      resetPasswordStore.set(resetCode, resetRecord);
+      resetPasswordStore.set(resetHash, resetRecord);
 
       const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
       const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173';
@@ -534,7 +538,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
     // 5H. RESET PASSWORD: POST /api/auth/reset-password
     // -------------------------------------------------------------
     if (pathname === '/api/auth/reset-password' && method === 'POST') {
-      const rl = checkRateLimit(clientIp, 'reset-password', 10, 60000);
+      const rl = checkRateLimit(clientIp, 'reset-password', 20, 60000);
       if (!rl.allowed) {
         sendError(res, 429, `Too many reset attempts. Please wait ${rl.retryAfterSec}s.`);
         return true;
@@ -560,15 +564,23 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
-      // Find reset session by email OR by code/hash
-      let record: ResetPasswordRecord | undefined = email ? resetPasswordStore.get(email) : undefined;
+      // Find reset session by code, email, or resetHash
+      let record: ResetPasswordRecord | undefined = resetPasswordStore.get(code);
+
+      if (!record && email) {
+        record = resetPasswordStore.get(email);
+      }
 
       if (!record && code) {
         const inputHash = crypto.createHash('sha256').update(code).digest('hex');
-        for (const [key, val] of resetPasswordStore.entries()) {
-          if (val.resetHash === inputHash || val.resetHash === code || key === email || key === code) {
-            record = val;
-            break;
+        record = resetPasswordStore.get(inputHash);
+
+        if (!record) {
+          for (const [key, val] of resetPasswordStore.entries()) {
+            if (val.resetHash === inputHash || val.resetHash === code || key === email || key === code) {
+              record = val;
+              break;
+            }
           }
         }
       }
@@ -578,17 +590,12 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         return true;
       }
 
+      // Enforce exact 15-minute window for password changes
       if (Date.now() > record.expiresAt) {
         resetPasswordStore.delete(record.email);
         resetPasswordStore.delete(code);
+        resetPasswordStore.delete(record.resetHash);
         sendError(res, 400, 'This password reset link has expired.');
-        return true;
-      }
-
-      if (record.attempts >= 5) {
-        resetPasswordStore.delete(record.email);
-        resetPasswordStore.delete(code);
-        sendError(res, 429, 'Too many attempts. Please request a new password reset link.');
         return true;
       }
 
@@ -599,9 +606,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
 
       await dbUpdateUser(record.userId, { passwordHash: newHash, salt: newSalt });
 
-      // Clean up session records
-      resetPasswordStore.delete(record.email);
-      resetPasswordStore.delete(code);
+      // Note: We keep the reset record active until expiresAt (15 min) so user can change password anytime in 15min.
 
       sendJson(res, 200, {
         success: true,
