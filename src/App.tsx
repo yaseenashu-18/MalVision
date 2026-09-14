@@ -144,30 +144,53 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('malvision_logout', handleGlobalLogout);
   }, []);
 
-  // Instant Session Revocation Poller & Focus Listener ("sign out on spot")
+  // Instant 0ms Session Revocation SSE Stream & 1s Poller ("sign out on spot")
   useEffect(() => {
     if (!user) return;
+
+    const performSpotSignOut = () => {
+      setUser(null);
+      destroyActiveSession();
+      clearActiveUserScansCache();
+      clearActiveVisionCache();
+      setCurrentPage('dashboard');
+      setActiveScrollSection('dashboard');
+      if (window.location.hash !== '#/home') {
+        window.history.pushState(null, '', '#/home');
+      }
+    };
 
     const verifySessionOnSpot = async () => {
       const res = await apiCheckSession();
       if (!res.authenticated) {
-        setUser(null);
-        destroyActiveSession();
-        clearActiveUserScansCache();
-        clearActiveVisionCache();
-        setCurrentPage('dashboard');
-        setActiveScrollSection('dashboard');
-        if (window.location.hash !== '#/home') {
-          window.history.pushState(null, '', '#/home');
-        }
+        performSpotSignOut();
       }
     };
 
-    const intervalId = setInterval(verifySessionOnSpot, 4000);
+    // 1. Real-time Server-Sent Events (0ms Instant Revocation Push)
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/auth/session-stream');
+      eventSource.addEventListener('revoked', () => {
+        console.log('[MalVision Security] Session revoked by remote device. Signing out on spot...');
+        performSpotSignOut();
+      });
+      eventSource.onerror = () => {
+        /* Fallback to fast polling on SSE disconnect */
+      };
+    } catch {
+      /* ignore SSE unsupported */
+    }
+
+    // 2. Fast 1-second Poller & Window Focus Listener (Fallback)
+    const intervalId = setInterval(verifySessionOnSpot, 1000);
     window.addEventListener('focus', verifySessionOnSpot);
     document.addEventListener('visibilitychange', verifySessionOnSpot);
 
     return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
       clearInterval(intervalId);
       window.removeEventListener('focus', verifySessionOnSpot);
       document.removeEventListener('visibilitychange', verifySessionOnSpot);
