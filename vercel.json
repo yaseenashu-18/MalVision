@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "MONGODB_URI": "mongodb+srv://yaseenashu18:yaseenashu18@threat-detection.f39agqr.mongodb.net/?appName=threat-detection",
+    "MONGODB_DB_NAME": "threat-detection",
+    "SESSION_SECRET": "malvision_prod_session_secret_9982347102938471",
+    "SUPERADMIN_USERNAME": "yaseenashu1874",
+    "SUPERADMIN_PASSWORD": "Yaseen@1874"
+  }
+}
+

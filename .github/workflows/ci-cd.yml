@@ -1,0 +1,62 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Permissions for GitHub Pages & Deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  # 1. Build and Typecheck (CI)
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_MONGODB_URI: ${{ secrets.VITE_MONGODB_URI || 'mongodb+srv://yaseenashu18:yaseenashu18@threat-detection.f39agqr.mongodb.net/?appName=threat-detection' }}
+      VITE_MONGODB_DB_NAME: 'threat-detection'
+      VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || '21441140793-33kb6kk0on8sm8mvhpgu4055iqko0mdd.apps.googleusercontent.com' }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci || npm install --legacy-peer-deps
+
+      - name: Type Check & Production Build
+        run: npm run build
+
+      - name: Upload Build Artifact for Deployment
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+  # 2. Deploy to GitHub Pages (CD)
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
