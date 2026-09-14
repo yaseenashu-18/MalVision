@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
 
 function getEnv(key: string, fallback = ''): string {
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
@@ -31,16 +33,64 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Shared MalVision Outer Shell & Header / Footer Layout (PURE WHITE / LIGHT THEME ONLY)
+ * Returns inline Base64 Data URI of MalVision logo for embedded image src (0 file attachments sent)
+ */
+function getLogoDataUri(): string {
+  try {
+    const possibleSvgPaths = [
+      path.resolve(process.cwd(), 'src/assets/MalVision_logo_pixel_match.svg'),
+      path.resolve(process.cwd(), 'dist/assets/MalVision_logo_pixel_match.svg'),
+      path.resolve(__dirname, '../assets/MalVision_logo_pixel_match.svg'),
+      path.resolve(__dirname, '../../src/assets/MalVision_logo_pixel_match.svg'),
+    ];
+
+    for (const p of possibleSvgPaths) {
+      if (fs.existsSync(p)) {
+        const svgContent = fs.readFileSync(p, 'utf8');
+        const match = svgContent.match(/href="(data:image\/png;base64,[^"]+)"/);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+    }
+
+    const possiblePngPaths = [
+      path.resolve(process.cwd(), 'src/assets/malvision_logo.png'),
+      path.resolve(process.cwd(), 'dist/assets/malvision_logo.png'),
+      path.resolve(__dirname, '../assets/malvision_logo.png'),
+      path.resolve(__dirname, '../../src/assets/malvision_logo.png'),
+    ];
+
+    for (const p of possiblePngPaths) {
+      if (fs.existsSync(p)) {
+        const fileBuf = fs.readFileSync(p);
+        return `data:image/png;base64,${fileBuf.toString('base64')}`;
+      }
+    }
+  } catch {
+    /* fallback to SVG icon */
+  }
+
+  return '';
+}
+
+/**
+ * Shared MalVision Outer Shell & Header / Footer Layout (PURE WHITE / SINGLE CARD STYLE ONLY - NO INNER SQUARE PANEL)
  */
 function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: string): string {
+  const logoDataUri = getLogoDataUri();
+
   const logoHeaderHtml = `
     <table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
       <tr>
         <td valign="middle" style="padding-right: 8px; vertical-align: middle;">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          ${
+            logoDataUri
+              ? `<img src="${logoDataUri}" alt="MalVision Logo" height="28" style="display: block; height: 28px; width: auto; border: 0; outline: none;" />`
+              : `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M4 22V6L10 16L14 9.5L18 16L24 6V22" stroke="#0f172a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                 </svg>`
+          }
         </td>
         <td valign="middle" style="vertical-align: middle; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1;">
           MalVision
@@ -64,7 +114,6 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
     @media only screen and (max-width: 600px) {
       .email-card { width: 100% !important; max-width: 100% !important; border-radius: 20px !important; }
       .card-padding { padding: 24px 20px !important; }
-      .main-panel-padding { padding: 28px 20px !important; }
     }
   </style>
 </head>
@@ -72,7 +121,7 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
   <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; table-layout: fixed;">
     <tr>
       <td align="center" style="padding: 32px 16px;">
-        <!-- Main Email Card (Pure White / Clean Light Border) -->
+        <!-- Main Email Card (Pure White Single Card Style - No Inner Square Background) -->
         <table border="0" cellpadding="0" cellspacing="0" width="100%" class="email-card" style="max-width: 540px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 30px; border-collapse: separate; overflow: hidden; margin: 0 auto;">
           <tr>
             <td class="card-padding" style="padding: 38px 40px 36px 40px;">
@@ -88,20 +137,20 @@ function renderMalVisionEmailShell(contentHtml: string, footerWarningHtml: strin
                 </tr>
               </table>
 
-              <!-- Gap before main panel -->
+              <!-- Gap before content -->
               <div style="height: 32px; line-height: 32px; font-size: 1px;">&nbsp;</div>
 
-              <!-- Main Content Panel -->
-              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f2f4f7; border: 1px solid #e2e8f0; border-radius: 22px; border-collapse: separate; overflow: hidden;">
+              <!-- Main Content (Sits directly on main white card surface) -->
+              <table border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td align="center" class="main-panel-padding" style="padding: 38px 32px 34px 32px;">
+                  <td align="center" style="padding: 10px 0 20px 0;">
                     ${contentHtml}
                   </td>
                 </tr>
               </table>
 
-              <!-- Gap after main panel -->
-              <div style="height: 28px; line-height: 28px; font-size: 1px;">&nbsp;</div>
+              <!-- Gap after content -->
+              <div style="height: 24px; line-height: 24px; font-size: 1px;">&nbsp;</div>
 
               <!-- Footer -->
               <table border="0" cellpadding="0" cellspacing="0" width="100%">
