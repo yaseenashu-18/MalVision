@@ -12,6 +12,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 import { AuthPage } from './components/AuthPage';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { ToastContainer } from './components/ToastNotification';
 import { apiCheckSession } from './lib/authApi';
 import { getActiveSession, createActiveSession, destroyActiveSession, performSignOut } from './lib/userStore';
 import { fetchServerScanHistory, clearActiveUserScansCache } from './lib/historyStore';
@@ -480,6 +481,7 @@ export function App() {
   return (
     <ThemeProvider>
       <AppContent />
+      <ToastContainer />
     </ThemeProvider>
   );
 }

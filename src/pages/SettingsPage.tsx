@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Volume2, ShieldCheck, Bell, Shield, Lock, Trash2, LogOut,
-  ChevronRight, Check, CheckCircle2, X, Smartphone, Monitor, RefreshCw
+  ChevronRight, CheckCircle2, X, Smartphone, Monitor, RefreshCw
 } from 'lucide-react';
 import { clearApplicationCache } from '../lib/cacheService';
 import { isSoundEnabled, setSoundEnabled, playSound } from '../lib/soundEffects';
 import { createActiveSession, extractUsername, updateUserProfileInStore } from '../lib/userStore';
 import { apiGetActiveSessions, apiRevokeActiveSession, type ActiveSessionItem } from '../lib/authApi';
 import { broadcastSyncEvent } from '../lib/syncChannel';
+import { showToast } from '../lib/toastStore';
 import {
   AddEmailModal, ChangePasswordModal, TwoFactorModal, SignOutConfirmModal
 } from './ProfilePage';
@@ -87,18 +88,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [loadingSessions, setLoadingSessions] = useState<boolean>(false);
   const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
 
-  // ─── Toast / Cache Banner State ───
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  // ─── Cache Banner State ───
   const [cacheClearedBanner, setCacheClearedBanner] = useState<boolean>(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const isGoogleUser = user?.provider === 'google';
   const hasRealEmail = Boolean(user?.email && !user.email.toLowerCase().includes('@malvision.local'));
@@ -227,18 +222,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 space-y-6 animate-in fade-in duration-300">
-      
-      {/* ─── Toast Notification ─── */}
-      {toast && (
-        <div className={`fixed top-20 right-4 z-50 max-w-sm px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold flex items-center space-x-2 animate-in slide-in-from-right-5 fade-in duration-300 ${
-          toast.type === 'success'
-            ? 'bg-emerald-950/90 border-emerald-800 text-emerald-300'
-            : 'bg-rose-950/90 border-rose-800 text-rose-300'
-        }`}>
-          <Check className="w-4 h-4 shrink-0" />
-          <span>{toast.message}</span>
-        </div>
-      )}
 
       {/* ─── Cache Cleared Banner ─── */}
       {cacheClearedBanner && (
