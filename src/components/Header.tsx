@@ -100,12 +100,13 @@ export const Header: React.FC<HeaderProps> = ({
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left: Original Logo (Refreshing page from top on click) */}
+        {/* Left: Logo (Navigates to /#/home and reloads page on click) */}
         <a
-          href="https://malvision.vercel.app/"
+          href="/#/home"
           onClick={(e) => {
             e.preventDefault();
             window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            window.location.href = window.location.origin + '/#/home';
             window.location.reload();
           }}
           className="flex items-center focus:outline-none transition-opacity duration-200 hover:opacity-80 cursor-pointer group py-1 shrink-0 select-none"

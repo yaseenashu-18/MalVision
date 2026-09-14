@@ -811,16 +811,20 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       const userSessions = await dbGetActiveSessionsForUser(user.id);
       
       const parseDevice = (ua?: string): string => {
-        if (!ua) return 'Desktop PC (Web)';
+        if (!ua) return 'Desktop PC';
         const u = ua.toLowerCase();
         
-        let os = 'Desktop PC';
-        if (u.includes('iphone')) os = 'iPhone';
-        else if (u.includes('ipad')) os = 'iPad';
-        else if (u.includes('android')) os = u.includes('mobile') ? 'Android Mobile' : 'Android Tablet';
-        else if (u.includes('macintosh') || u.includes('mac os')) os = 'MacBook';
-        else if (u.includes('windows')) os = 'Windows PC';
-        else if (u.includes('linux')) os = 'Linux PC';
+        const isMobile = u.includes('mobile') || u.includes('iphone') || u.includes('android') || u.includes('ipod') || u.includes('ipad');
+
+        let os = '';
+        if (u.includes('iphone')) os = 'iPhone Mobile';
+        else if (u.includes('android') && u.includes('mobile')) os = 'Android Mobile';
+        else if (u.includes('android')) os = 'Android Mobile';
+        else if (u.includes('ipad')) os = 'iPad Mobile';
+        else if (u.includes('macintosh') || u.includes('mac os')) os = isMobile ? 'Mac Mobile' : 'MacBook PC';
+        else if (u.includes('windows')) os = isMobile ? 'Windows Mobile' : 'Windows PC';
+        else if (u.includes('linux')) os = isMobile ? 'Linux Mobile' : 'Linux PC';
+        else os = isMobile ? 'Mobile' : 'Desktop PC';
 
         let browser = '';
         if (u.includes('edg/') || u.includes('edge')) browser = ' (Edge)';

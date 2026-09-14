@@ -851,61 +851,75 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   No active sessions found.
                 </div>
               ) : (
-                activeSessionsList.map((sess) => (
-                  <div
-                    key={sess.sessionId}
-                    className={`p-4 rounded-2xl border transition flex items-center justify-between text-xs gap-3 ${
-                      sess.isCurrent
-                        ? 'bg-neutral-50 dark:bg-neutral-900/80 border-emerald-800/40'
-                        : 'bg-neutral-50 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 truncate">
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shrink-0">
-                        {sess.device.includes('iOS') || sess.device.includes('Android') || sess.device.includes('Mobile') ? (
-                          <Smartphone className="w-5 h-5 text-blue-400" />
-                        ) : (
-                          <Monitor className="w-5 h-5 text-blue-400" />
-                        )}
-                      </div>
-                      <div className="truncate">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-bold text-neutral-900 dark:text-white truncate">
-                            {sess.userName || 'Active Account'}
-                          </h4>
-                          {sess.userEmail && (
-                            <span className="text-[10px] text-neutral-400 truncate">({sess.userEmail})</span>
+                activeSessionsList.map((sess) => {
+                  const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
+                  const isMobile = sess.isCurrent ? (isMobileView || sess.device.includes('Mobile') || sess.device.includes('iPhone') || sess.device.includes('Android')) : (sess.device.includes('Mobile') || sess.device.includes('iPhone') || sess.device.includes('Android'));
+                  
+                  let deviceLabel = sess.device;
+                  if (sess.isCurrent) {
+                    if (isMobileView && deviceLabel.includes('PC')) {
+                      deviceLabel = deviceLabel.replace('PC', 'Mobile');
+                    } else if (!isMobileView && deviceLabel.includes('Mobile') && !deviceLabel.includes('iPhone') && !deviceLabel.includes('Android')) {
+                      deviceLabel = deviceLabel.replace('Mobile', 'PC');
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={sess.sessionId}
+                      className={`p-4 rounded-2xl border transition flex items-center justify-between text-xs gap-3 ${
+                        sess.isCurrent
+                          ? 'bg-neutral-50 dark:bg-neutral-900/80 border-emerald-800/40'
+                          : 'bg-neutral-50 dark:bg-neutral-900/40 border-neutral-200 dark:border-neutral-800'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 truncate">
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shrink-0">
+                          {isMobile ? (
+                            <Smartphone className="w-5 h-5 text-blue-400" />
+                          ) : (
+                            <Monitor className="w-5 h-5 text-blue-400" />
                           )}
                         </div>
-                        <p className="text-[11px] text-neutral-400 mt-0.5 truncate">
-                          {sess.device} • <span className="font-mono text-[10px]">{sess.ipAddress}</span>
-                        </p>
+                        <div className="truncate">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-bold text-neutral-900 dark:text-white truncate">
+                              {sess.userName || 'Active Account'}
+                            </h4>
+                            {sess.userEmail && (
+                              <span className="text-[10px] text-neutral-400 truncate">({sess.userEmail})</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-neutral-400 mt-0.5 truncate">
+                            {deviceLabel} • <span className="font-mono text-[10px]">{sess.ipAddress}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {sess.isCurrent ? (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 text-[10px] font-bold border border-emerald-800/40 whitespace-nowrap">
+                            Current Session
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={revokingSessionId === sess.sessionId}
+                            onClick={() => handleRevokeOtherSession(sess.sessionId)}
+                            className="px-3 py-1.5 rounded-xl border border-rose-600/40 hover:border-rose-600 bg-rose-950/20 hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            {revokingSessionId === sess.sessionId ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <LogOut className="w-3.5 h-3.5" />
+                            )}
+                            <span>Sign Out</span>
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="shrink-0">
-                      {sess.isCurrent ? (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-400 text-[10px] font-bold border border-emerald-800/40 whitespace-nowrap">
-                          Current Session
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={revokingSessionId === sess.sessionId}
-                          onClick={() => handleRevokeOtherSession(sess.sessionId)}
-                          className="px-3 py-1.5 rounded-xl border border-rose-600/40 hover:border-rose-600 bg-rose-950/20 hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
-                        >
-                          {revokingSessionId === sess.sessionId ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <LogOut className="w-3.5 h-3.5" />
-                          )}
-                          <span>Sign Out</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

@@ -347,7 +347,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       <header className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between shrink-0">
         {/* Brand Lockup (Website Logo Logic) */}
         <button
-          onClick={() => onNavigate('dashboard')}
+          type="button"
+          onClick={() => {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            window.location.href = window.location.origin + '/#/home';
+            window.location.reload();
+          }}
           className="flex items-center focus:outline-none transition-opacity duration-200 hover:opacity-80 cursor-pointer group py-1 shrink-0 select-none"
           aria-label="MalVision Home"
         >
