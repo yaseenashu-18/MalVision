@@ -47,13 +47,15 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
   } | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Scanning State
+  // Scanning State & Duration Timer
   const [scanProgress, setScanProgress] = useState(0);
   const [currentPipelineStep, setCurrentPipelineStep] = useState(0);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
   const [isStartingScan, setIsStartingScan] = useState(false);
+  const [scanDurationSec, setScanDurationSec] = useState<string>('2.1 seconds');
 
+  const startTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scanTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -223,12 +225,15 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
     fileInputRef.current?.click();
   };
 
-  // Start Scan Action Trigger
+  // Start Scan Action Trigger (Normal Time Counting for Scan Duration)
   const handleStartScan = async () => {
     if (!selectedFile || isStartingScan) return;
     setIsStartingScan(true);
 
-    // Immediate state transition with brief feedback
+    // Record start timestamp
+    startTimeRef.current = Date.now();
+
+    // Immediate state transition with brief press feedback
     await new Promise((res) => setTimeout(res, 150));
     setIsStartingScan(false);
 
@@ -257,6 +262,10 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
 
       if (currentPct >= 100) {
         if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+
+        // Calculate exact real scan duration in normal time seconds
+        const elapsedSec = ((Date.now() - startTimeRef.current) / 1000).toFixed(1);
+        setScanDurationSec(`${elapsedSec} seconds`);
 
         const res = await analyzeFile(selectedFile);
         saveScanToHistory(res, user?.email);
@@ -300,7 +309,7 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
     'Finalizing results',
   ];
 
-  // Visual File Preview Thumbnail Generator
+  // Visual File Preview Thumbnail Generator (NO PDF ICONS, NO DECORATIVE FILE ICONS)
   const renderFileThumbnail = (file: File) => {
     const ext = file.name.includes('.')
       ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
@@ -325,41 +334,41 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
       }
     }
 
-    // PDF file: Miniature page 1 thumbnail preview
+    // PDF file: Visual page 1 miniature canvas/document preview thumbnail (NO ICONS)
     if (ext === '.pdf' || file.type === 'application/pdf') {
       return (
-        <div className="w-16 h-20 rounded-xl border border-neutral-300 dark:border-neutral-700/80 bg-neutral-100 dark:bg-[#1a1a1e] p-2 flex flex-col justify-between shrink-0 shadow-sm relative overflow-hidden group">
-          <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-700/60 pb-1">
-            <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">
-              PDF
+        <div className="w-16 h-20 rounded-xl border border-neutral-300 dark:border-neutral-700/80 bg-white dark:bg-[#1a1a1e] p-2 flex flex-col justify-between shrink-0 shadow-sm relative overflow-hidden group">
+          <div className="border-b border-neutral-200 dark:border-neutral-700/60 pb-1 flex justify-between items-center">
+            <span className="text-[8px] font-bold text-neutral-500 dark:text-neutral-400 truncate max-w-[45px]">
+              {file.name}
             </span>
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span className="text-[7px] font-bold text-neutral-400">P.1</span>
           </div>
-          <div className="space-y-1 my-1">
+          <div className="space-y-1 my-1 flex-1">
             <div className="h-1.5 w-3/4 rounded bg-neutral-400 dark:bg-neutral-600" />
             <div className="h-1 w-full rounded bg-neutral-300 dark:bg-neutral-700" />
             <div className="h-1 w-5/6 rounded bg-neutral-300 dark:bg-neutral-700" />
             <div className="h-1 w-4/6 rounded bg-neutral-300 dark:bg-neutral-700" />
+            <div className="h-1 w-full rounded bg-neutral-300 dark:bg-neutral-700" />
           </div>
-          <div className="text-[8px] font-semibold text-neutral-400 dark:text-neutral-500 text-right truncate">
-            Page 1
+          <div className="text-[7px] font-mono text-neutral-400 dark:text-neutral-500 text-right">
+            PDF Page 1
           </div>
         </div>
       );
     }
 
-    // Document / Text file: Miniature page preview thumbnail
+    // Document / Text file: Visual document page thumbnail (NO ICONS)
     return (
-      <div className="w-16 h-20 rounded-xl border border-neutral-300 dark:border-neutral-700/80 bg-neutral-100 dark:bg-[#1a1a1e] p-2 flex flex-col justify-between shrink-0 shadow-sm relative overflow-hidden">
-        <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-700/60 pb-1">
-          <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest truncate max-w-[42px]">
-            {ext.replace('.', '').toUpperCase() || 'DOC'}
+      <div className="w-16 h-20 rounded-xl border border-neutral-300 dark:border-neutral-700/80 bg-white dark:bg-[#1a1a1e] p-2 flex flex-col justify-between shrink-0 shadow-sm relative overflow-hidden">
+        <div className="border-b border-neutral-200 dark:border-neutral-700/60 pb-1">
+          <span className="text-[8px] font-bold text-neutral-500 dark:text-neutral-400 truncate block">
+            {file.name}
           </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
         </div>
         <div className="my-1 flex-1 overflow-hidden">
           {textSnippet ? (
-            <p className="text-[7px] text-neutral-500 dark:text-neutral-400 font-mono leading-tight line-clamp-4 select-none opacity-80">
+            <p className="text-[7px] text-neutral-600 dark:text-neutral-400 font-mono leading-tight line-clamp-4 select-none opacity-90">
               {textSnippet}
             </p>
           ) : (
@@ -370,8 +379,8 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
             </div>
           )}
         </div>
-        <div className="text-[8px] font-semibold text-neutral-400 dark:text-neutral-500 text-right truncate">
-          Doc Preview
+        <div className="text-[7px] font-mono text-neutral-400 dark:text-neutral-500 text-right">
+          Preview
         </div>
       </div>
     );
@@ -598,7 +607,7 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
               </div>
             </div>
 
-            {/* 6 Scanning Pipeline Stages (NEUTRAL light checkmarks for completed steps, NO green ticks) */}
+            {/* 6 Scanning Pipeline Stages (NEUTRAL light checkmarks for completed steps, NO GREEN TICKS) */}
             <div className="space-y-2.5 pt-2 border-t border-neutral-200/60 dark:border-neutral-800/60">
               {pipelineSteps.map((stepName, idx) => {
                 const isCompleted = idx < currentPipelineStep;
@@ -608,7 +617,7 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
                   <div key={idx} className="flex items-center justify-between text-xs py-1">
                     <div className="flex items-center space-x-3">
                       {isCompleted ? (
-                        /* Completed Stage: Neutral/Light checkmark (NO GREEN) */
+                        /* Completed Stage: Neutral/Light checkmark (NO GREEN TICKS) */
                         <div className="w-5 h-5 rounded-full bg-neutral-800 text-neutral-200 dark:bg-neutral-700 dark:text-neutral-100 flex items-center justify-center shrink-0 shadow-xs">
                           <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                         </div>
@@ -777,10 +786,12 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
                 </div>
               </div>
 
-              {/* 3. Scan Timestamp (Appears AFTER Security Score) */}
-              <p className="text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1">
-                {scanResult.timestamp || formatFileModifiedDate(selectedFile)}
-              </p>
+              {/* 3. Scan Timestamp & Real Scan Duration (Appears AFTER Security Score) */}
+              <div className="text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1 flex flex-wrap items-center gap-2">
+                <span>{scanResult.timestamp || formatFileModifiedDate(selectedFile)}</span>
+                <span>•</span>
+                <span>Scan duration: <strong className="font-semibold text-neutral-700 dark:text-neutral-300">{scanDurationSec}</strong></span>
+              </div>
             </div>
 
             {/* 11. Detailed Analysis Section (6 Compact Cards with Neutral Indicators) */}
