@@ -14,6 +14,7 @@ export interface SyncMessagePayload {
   type: SyncEventType;
   userId?: string;
   scanId?: string;
+  revokedSessionId?: string;
   timestamp: number;
 }
 
@@ -32,11 +33,12 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
  * Broadcasts a synchronization event to all other open tabs in the browser.
  * NEVER contains sensitive data (no passwords, session tokens, or raw credentials).
  */
-export function broadcastSyncEvent(type: SyncEventType, payload?: { userId?: string; scanId?: string }) {
+export function broadcastSyncEvent(type: SyncEventType, payload?: { userId?: string; scanId?: string; revokedSessionId?: string }) {
   const eventData: SyncMessagePayload = {
     type,
     userId: payload?.userId,
     scanId: payload?.scanId,
+    revokedSessionId: payload?.revokedSessionId,
     timestamp: Date.now(),
   };
 

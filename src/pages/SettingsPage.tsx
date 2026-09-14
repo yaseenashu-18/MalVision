@@ -155,6 +155,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       const res = await apiRevokeActiveSession(sessionIdToRevoke);
       if (res.success) {
         setActiveSessionsList((prev) => prev.filter((s) => s.sessionId !== sessionIdToRevoke));
+        broadcastSyncEvent('malvision:auth-changed', { revokedSessionId: sessionIdToRevoke });
         if (soundEnabled) playSound('click');
         showToast('Session signed out successfully.');
       } else {

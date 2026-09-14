@@ -143,6 +143,36 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('malvision_logout', handleGlobalLogout);
   }, []);
 
+  // Instant Session Revocation Poller & Focus Listener ("sign out on spot")
+  useEffect(() => {
+    if (!user) return;
+
+    const verifySessionOnSpot = async () => {
+      const res = await apiCheckSession();
+      if (!res.authenticated) {
+        setUser(null);
+        destroyActiveSession();
+        clearActiveUserScansCache();
+        clearActiveVisionCache();
+        setCurrentPage('dashboard');
+        setActiveScrollSection('dashboard');
+        if (window.location.hash !== '#/home') {
+          window.history.pushState(null, '', '#/home');
+        }
+      }
+    };
+
+    const intervalId = setInterval(verifySessionOnSpot, 4000);
+    window.addEventListener('focus', verifySessionOnSpot);
+    document.addEventListener('visibilitychange', verifySessionOnSpot);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', verifySessionOnSpot);
+      document.removeEventListener('visibilitychange', verifySessionOnSpot);
+    };
+  }, [user]);
+
   const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
     setCurrentPage(mode);
     window.scrollTo({ top: 0, behavior: 'smooth' });

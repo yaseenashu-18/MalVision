@@ -242,7 +242,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       }
 
       // Create session & issue HttpOnly session cookie
-      const session = await dbCreateSession(createResult.user.id);
+      const session = await dbCreateSession(createResult.user.id, undefined, clientIp, (req.headers['user-agent'] as string) || '');
       setSessionCookie(res, session.sessionId);
 
       sendJson(res, 201, {
@@ -299,7 +299,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
       // Successful Auth: Reset lockout counter & rotate session
       await dbUpdateUser(user.id, { failedLoginAttempts: 0, lockoutUntil: undefined, lastLoginAt: new Date().toISOString() });
 
-      const session = await dbCreateSession(user.id);
+      const session = await dbCreateSession(user.id, undefined, clientIp, (req.headers['user-agent'] as string) || '');
       setSessionCookie(res, session.sessionId);
 
       sendJson(res, 200, {
@@ -353,7 +353,7 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
         }
       }
 
-      const session = await dbCreateSession(user.id);
+      const session = await dbCreateSession(user.id, undefined, clientIp, (req.headers['user-agent'] as string) || '');
       setSessionCookie(res, session.sessionId);
 
       sendJson(res, 200, {
@@ -793,14 +793,26 @@ export async function handleApiRequest(req: IncomingMessage, res: ServerResponse
 
       const userSessions = await dbGetActiveSessionsForUser(user.id);
       
-      const parseDevice = (ua?: string) => {
-        if (!ua) return 'MalVision Web Client';
-        if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS Mobile Device';
-        if (ua.includes('Android')) return 'Android Mobile Device';
-        if (ua.includes('Windows')) return 'Windows PC (Chrome)';
-        if (ua.includes('Macintosh')) return 'MacBook (Safari)';
-        if (ua.includes('Linux')) return 'Linux Workstation';
-        return 'MalVision Web Client';
+      const parseDevice = (ua?: string): string => {
+        if (!ua) return 'Desktop PC (Web)';
+        const u = ua.toLowerCase();
+        
+        let os = 'Desktop PC';
+        if (u.includes('iphone')) os = 'iPhone';
+        else if (u.includes('ipad')) os = 'iPad';
+        else if (u.includes('android')) os = u.includes('mobile') ? 'Android Mobile' : 'Android Tablet';
+        else if (u.includes('macintosh') || u.includes('mac os')) os = 'MacBook';
+        else if (u.includes('windows')) os = 'Windows PC';
+        else if (u.includes('linux')) os = 'Linux PC';
+
+        let browser = '';
+        if (u.includes('edg/') || u.includes('edge')) browser = ' (Edge)';
+        else if (u.includes('chrome') && !u.includes('chromium')) browser = ' (Chrome)';
+        else if (u.includes('safari') && !u.includes('chrome')) browser = ' (Safari)';
+        else if (u.includes('firefox')) browser = ' (Firefox)';
+        else if (u.includes('opera') || u.includes('opr/')) browser = ' (Opera)';
+
+        return `${os}${browser}`;
       };
 
       const items = userSessions.map((s) => ({

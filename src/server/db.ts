@@ -445,7 +445,12 @@ export async function dbDeleteUserAccount(userId: string): Promise<{ success: bo
 
 // --- SESSION OPERATIONS ---
 
-export async function dbCreateSession(userId: string, ttlMs: number = 7 * 24 * 60 * 60 * 1000): Promise<ServerSessionRecord> {
+export async function dbCreateSession(
+  userId: string,
+  ttlMs: number = 7 * 24 * 60 * 60 * 1000,
+  ipAddress?: string,
+  userAgent?: string
+): Promise<ServerSessionRecord> {
   // CS-PRNG Session ID using crypto.randomUUID()
   const sessionId = `sess_${crypto.randomUUID()}`;
   const now = new Date();
@@ -456,6 +461,8 @@ export async function dbCreateSession(userId: string, ttlMs: number = 7 * 24 * 6
     userId,
     createdAt: now.toISOString(),
     expiresAt,
+    ipAddress,
+    userAgent,
   };
 
   const db = await getMongoDb();
@@ -464,6 +471,8 @@ export async function dbCreateSession(userId: string, ttlMs: number = 7 * 24 * 6
     userId: record.userId,
     createdAt: record.createdAt,
     expiresAt: record.expiresAt, // BSON Date for native MongoDB TTL index
+    ipAddress: record.ipAddress || '',
+    userAgent: record.userAgent || '',
   });
 
   if (!res.acknowledged) {
