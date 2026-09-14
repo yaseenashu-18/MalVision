@@ -348,10 +348,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         {/* Brand Lockup (Website Logo Logic) */}
         <button
           type="button"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.hash = '#/home';
             window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-            window.location.href = window.location.origin + '/#/home';
-            window.location.reload();
+            setTimeout(() => {
+              window.location.reload();
+            }, 10);
           }}
           className="flex items-center focus:outline-none transition-opacity duration-200 hover:opacity-80 cursor-pointer group py-1 shrink-0 select-none"
           aria-label="MalVision Home"
