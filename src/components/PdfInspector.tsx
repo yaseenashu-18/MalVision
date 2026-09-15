@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   FileUp,
   ShieldCheck,
@@ -6,11 +6,6 @@ import {
   Loader2,
   RefreshCw,
   Download,
-  Minus,
-  Plus,
-  Maximize2,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   Activity,
   Target,
@@ -18,8 +13,8 @@ import {
   Globe,
   Zap,
 } from 'lucide-react';
-import { analyzePdf } from '../lib/scanEngine';
 import { saveScanToHistory } from '../lib/historyStore';
+import { extractPdfData, type ExtractedPdfDetails } from '../lib/pdfAnalyzer';
 import type { ScanResultData } from '../types';
 import { downloadMalVisionPdfReport } from './HistoryModal';
 
@@ -27,49 +22,23 @@ interface PdfInspectorProps {
   user?: { name: string; email: string } | null;
 }
 
-type InspectorTab = 'preview' | 'analysis' | 'details';
-
 export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [pdfData, setPdfData] = useState<ExtractedPdfDetails | null>(null);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
-  const [activeTab, setActiveTab] = useState<InspectorTab>('preview');
-  const [activePage, setActivePage] = useState<number>(1);
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Default sample values for demo PDF inspect if file is uploaded
-  const totalPages = 12;
-
-  // Format file size (MB or KB)
-  const formatFileSize = (bytes: number): string => {
-    if (bytes >= 1024 * 1024) {
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-    return `${(bytes / 1024).toFixed(0)} KB`;
-  };
-
-  // Format file modified date
-  const formatFileModifiedDate = (file: File): string => {
-    try {
-      const date = file.lastModified ? new Date(file.lastModified) : new Date();
-      return (
-        date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }) +
-        `, ${date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        })}`
-      );
-    } catch {
-      return 'Sep 11, 2026, 10:24 AM';
-    }
-  };
+  // Clean up object URLs to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [pdfBlobUrl]);
 
   const handlePdfSelected = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
@@ -77,14 +46,81 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
       return;
     }
 
+    // Revoke previous object URL if any
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl(null);
+    }
+
     setSelectedFile(file);
     setIsScanning(true);
-    setActivePage(1);
 
     try {
-      const res = await analyzePdf(file);
+      const blobUrl = URL.createObjectURL(file);
+      setPdfBlobUrl(blobUrl);
+
+      // Dynamically extract real PDF metadata and structure from file ArrayBuffer
+      const extracted = await extractPdfData(file);
+      setPdfData(extracted);
+
+      const now = new Date();
+      const createdAt = now.toISOString();
+      const timestamp = now.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      const res: ScanResultData = {
+        id: `pdf-${Date.now()}`,
+        target: file.name,
+        targetType: 'pdf',
+        status: extracted.isThreat ? 'Malicious' : 'Safe',
+        score: extracted.isThreat ? 88 : 8,
+        summary: extracted.isThreat
+          ? `Threat detected in PDF stream analysis for ${file.name}.`
+          : `PDF structure and content validated for ${file.name}. No threats detected.`,
+        explanation: extracted.isThreat
+          ? extracted.threatDetails.join(' ')
+          : 'Document structure validated. No embedded malicious JavaScript streams or dangerous launch triggers identified.',
+        findings: extracted.isThreat
+          ? extracted.threatDetails.map((detail) => ({
+              type: 'danger',
+              title: 'Threat Detected',
+              detail,
+            }))
+          : [
+              {
+                type: 'success',
+                title: 'PDF Structure Validated',
+                detail: `PDF version ${extracted.pdfVersion} with ${extracted.totalPages} page(s).`,
+              },
+              {
+                type: 'info',
+                title: 'Content Verification',
+                detail: `Text: ${extracted.hasText ? 'Present' : 'None'}, Images: ${extracted.imageCount}, Links: ${extracted.linkCount}.`,
+              },
+            ],
+        recommendedAction: extracted.isThreat
+          ? 'Quarantine or delete this PDF document. Do not execute embedded scripts.'
+          : 'PDF document is safe to view and process.',
+        createdAt,
+        timestamp,
+        metadata: {
+          fileSize: extracted.fileSizeFormatted,
+          pageCount: extracted.totalPages,
+          javascriptDetected: extracted.hasJavaScript,
+          hiddenLayers: false,
+        },
+      };
+
       saveScanToHistory(res, user?.email);
       setScanResult(res);
+    } catch (err: any) {
+      console.error('Failed to parse PDF:', err);
     } finally {
       setIsScanning(false);
     }
@@ -111,32 +147,13 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
   };
 
   const handleReset = () => {
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl(null);
+    }
     setSelectedFile(null);
+    setPdfData(null);
     setScanResult(null);
-    setActivePage(1);
-  };
-
-  // Render Visual Miniature PDF Page Preview Thumbnail (NO GENERIC PDF ICONS)
-  const renderPdfThumbnail = (fileName: string) => {
-    return (
-      <div className="w-16 h-20 rounded-xl border border-neutral-300 dark:border-neutral-700/80 bg-white dark:bg-[#1a1a1e] p-2 flex flex-col justify-between shrink-0 shadow-sm relative overflow-hidden group">
-        <div className="border-b border-neutral-200 dark:border-neutral-700/60 pb-1 flex justify-between items-center">
-          <span className="text-[8px] font-bold text-neutral-500 dark:text-neutral-400 truncate max-w-[45px]">
-            {fileName}
-          </span>
-          <span className="text-[7px] font-bold text-neutral-400">P.1</span>
-        </div>
-        <div className="space-y-1 my-1 flex-1">
-          <div className="h-1.5 w-3/4 rounded bg-neutral-400 dark:bg-neutral-600" />
-          <div className="h-1 w-full rounded bg-neutral-300 dark:bg-neutral-700" />
-          <div className="h-1 w-5/6 rounded bg-neutral-300 dark:bg-neutral-700" />
-          <div className="h-1 w-4/6 rounded bg-neutral-300 dark:bg-neutral-700" />
-        </div>
-        <div className="text-[7px] font-mono text-neutral-400 dark:text-neutral-500 text-right">
-          PDF Page 1
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -150,29 +167,24 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
         className="hidden"
       />
 
-      {/* ═══════════════════════════════════════════════════════════════
-         TOP HEADER (Title, Subtitle & Know Before You Open Badge)
-         ═══════════════════════════════════════════════════════════════ */}
+      {/* Header (No inside tabs) */}
       <div className="flex items-center justify-between pb-1 border-b border-neutral-200/80 dark:border-neutral-800">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
             PDF Inspector
           </h2>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Preview and analyze PDF content before opening.
+            Real-time PDF content preview, metadata extraction, and security verification.
           </p>
         </div>
 
-        {/* Know Before You Open Badge */}
         <div className="hidden sm:flex items-center space-x-2 text-xs font-semibold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-700">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           <span>Know Before You Open.</span>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════
-         STATE 1 — NO FILE SELECTED (Drop Zone)
-         ═══════════════════════════════════════════════════════════════ */}
+      {/* STATE 1 — NO FILE SELECTED (Drop Zone) */}
       {!selectedFile && (
         <div
           onDragOver={(e) => e.preventDefault()}
@@ -197,41 +209,40 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════
-         STATE 2 — SCANNING LOADING STATE
-         ═══════════════════════════════════════════════════════════════ */}
+      {/* STATE 2 — SCANNING LOADING STATE */}
       {selectedFile && isScanning && (
         <div className="w-full flex-1 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] p-12 flex flex-col items-center justify-center text-center space-y-4">
           <Loader2 className="w-10 h-10 text-neutral-900 dark:text-white animate-spin" />
           <div className="space-y-1">
             <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-              Deconstructing PDF Structure...
+              Parsing PDF Binary Streams & Structure...
             </h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Parsing cross-reference tables, font streams, and embedded action triggers.
+              Extracting metadata, pages, font objects, and scanning for active script triggers.
             </p>
           </div>
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════
-         STATE 3 — PDF INSPECTED (Preview, Analysis & Details Views)
-         ═══════════════════════════════════════════════════════════════ */}
-      {selectedFile && !isScanning && scanResult && (
+      {/* STATE 3 — PDF INSPECTED (Preview + Extracted PDF Information + Scan History) */}
+      {selectedFile && !isScanning && pdfData && scanResult && (
         <div className="w-full flex-1 flex flex-col justify-between space-y-5 animate-in fade-in duration-200">
           {/* Selected File Card Header */}
           <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center space-x-4 truncate">
-              {renderPdfThumbnail(selectedFile.name)}
+              <div className="w-12 h-12 rounded-2xl bg-neutral-200 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center text-neutral-800 dark:text-neutral-200 shrink-0">
+                <FileText className="w-6 h-6" />
+              </div>
+
               <div className="truncate space-y-0.5">
                 <h3 className="text-base sm:text-lg font-bold text-neutral-900 dark:text-white truncate">
-                  {selectedFile.name}
+                  {pdfData.fileName}
                 </h3>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium truncate">
-                  {formatFileSize(selectedFile.size)} • {totalPages} pages
+                  {pdfData.fileSizeFormatted} • {pdfData.totalPages} {pdfData.totalPages === 1 ? 'page' : 'pages'} • PDF {pdfData.pdfVersion}
                 </p>
                 <div className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate pt-0.5">
-                  <span>Last modified {formatFileModifiedDate(selectedFile)}</span>
+                  <span>Last modified {pdfData.modifiedDateFormatted}</span>
                 </div>
               </div>
             </div>
@@ -245,357 +256,151 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
             </button>
           </div>
 
-          {/* Segmented Navigation Control Tabs (Preview / Analysis / Details) */}
-          <div className="p-1 rounded-2xl bg-neutral-100 dark:bg-[#141417] border border-neutral-200/80 dark:border-neutral-800 grid grid-cols-3 gap-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('preview')}
-              className={`py-2 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center space-x-2 ${
-                activeTab === 'preview'
-                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>Preview</span>
-            </button>
+          {/* MAIN GRID: PDF PREVIEW (Left) + DYNAMICALLY EXTRACTED METADATA (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* LEFT COLUMN (7 cols): ACTUAL PDF PREVIEW (Renders real PDF pages dynamically, no generic icon) */}
+            <div className="lg:col-span-7 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] p-4 flex flex-col justify-between space-y-3 shadow-sm">
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-neutral-200/80 dark:border-neutral-800">
+                <span className="font-bold text-neutral-900 dark:text-white flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-neutral-400" />
+                  <span>PDF Document Content Preview</span>
+                </span>
+                <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
+                  {pdfData.totalPages} {pdfData.totalPages === 1 ? 'Page' : 'Pages'}
+                </span>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('analysis')}
-              className={`py-2 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center space-x-2 ${
-                activeTab === 'analysis'
-                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Analysis</span>
-            </button>
+              {/* Native PDF Render Container via Object Blob URL */}
+              <div className="w-full h-[480px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#121215] overflow-hidden shadow-inner relative">
+                {pdfBlobUrl ? (
+                  <iframe
+                    src={`${pdfBlobUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+                    title={pdfData.fileName}
+                    className="w-full h-full border-none rounded-2xl"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-neutral-400">
+                    Loading PDF preview...
+                  </div>
+                )}
+              </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('details')}
-              className={`py-2 px-4 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center space-x-2 ${
-                activeTab === 'details'
-                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-xs'
-                  : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Details</span>
-            </button>
+            {/* RIGHT COLUMN (5 cols): DOCUMENT INFORMATION & CONTENT OVERVIEW CARDS */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* CARD 1: DOCUMENT INFORMATION */}
+              <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-3 shadow-sm">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-neutral-400" />
+                  <span>Document Information</span>
+                </h4>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">File name</span>
+                    <span className="font-bold text-neutral-900 dark:text-white truncate max-w-[170px]" title={pdfData.fileName}>
+                      {pdfData.fileName}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">File size</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.fileSizeFormatted}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Total pages</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">{pdfData.totalPages}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">File type</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">PDF Document</span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Created date</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">{pdfData.createdDateFormatted}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Modified date</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">{pdfData.modifiedDateFormatted}</span>
+                  </div>
+
+                  <div className="flex justify-between py-1">
+                    <span className="text-neutral-500 dark:text-neutral-400">PDF version</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">{pdfData.pdfVersion}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 2: CONTENT OVERVIEW */}
+              <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-3 shadow-sm">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white flex items-center space-x-2">
+                  <Activity className="w-4 h-4 text-neutral-400" />
+                  <span>Content Overview</span>
+                </h4>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Text</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.hasText ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Images</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.imageCount > 0 ? pdfData.imageCount : 'No'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Links</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.linkCount > 0 ? pdfData.linkCount : 'No'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">Embedded files</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.hasEmbeddedFiles ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
+                    <span className="text-neutral-500 dark:text-neutral-400">JavaScript</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.hasJavaScript ? 'Detected' : 'No'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between py-1">
+                    <span className="text-neutral-500 dark:text-neutral-400">Encryption</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">
+                      {pdfData.isEncrypted ? 'Encrypted' : 'No'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════════════════════
-             TAB 1 — PREVIEW MODE (2-Column Grid matching Screenshot)
-             ═══════════════════════════════════════════════════════════════ */}
-          {activeTab === 'preview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              {/* Left Column (8 cols): PDF Viewer Container */}
-              <div className="lg:col-span-7 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] p-4 flex flex-col justify-between space-y-4 shadow-sm">
-                {/* PDF Viewer Control Bar */}
-                <div className="flex items-center justify-between text-xs border-b border-neutral-200 dark:border-neutral-800 pb-3">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      disabled={activePage <= 1}
-                      onClick={() => setActivePage((p) => Math.max(1, p - 1))}
-                      className="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 cursor-pointer"
-                    >
-                      <ChevronLeft className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
-                    </button>
-
-                    <span className="font-bold text-neutral-900 dark:text-white px-2 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
-                      {activePage} / {totalPages}
-                    </span>
-
-                    <button
-                      type="button"
-                      disabled={activePage >= totalPages}
-                      onClick={() => setActivePage((p) => Math.min(totalPages, p + 1))}
-                      className="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30 cursor-pointer"
-                    >
-                      <ChevronRight className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
-                    </button>
-                  </div>
-
-                  {/* Zoom Controls */}
-                  <div className="flex items-center space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setZoomLevel((z) => Math.max(50, z - 10))}
-                      className="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 cursor-pointer text-neutral-700 dark:text-neutral-300"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-
-                    <span className="font-semibold text-neutral-700 dark:text-neutral-300 text-[11px]">
-                      {zoomLevel}%
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => setZoomLevel((z) => Math.min(150, z + 10))}
-                      className="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 cursor-pointer text-neutral-700 dark:text-neutral-300"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setZoomLevel(100)}
-                      className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 cursor-pointer text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700"
-                      title="Fit View"
-                    >
-                      <Maximize2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Main Rendered Document Page (High-Fidelity Paper Simulation) */}
-                <div className="w-full min-h-[360px] rounded-2xl bg-white text-neutral-900 p-8 shadow-inner flex flex-col justify-between border border-neutral-300 overflow-hidden relative">
-                  {/* Document Page Header Content */}
-                  <div className="space-y-4">
-                    <div className="border-b border-neutral-300 pb-4">
-                      <h1 className="text-2xl font-black tracking-tight text-neutral-900">
-                        {activePage === 1 ? 'Project Report' : `Section ${activePage}: Analysis Overview`}
-                      </h1>
-                      <p className="text-xs font-semibold text-neutral-600 mt-1">
-                        Cybersecurity Analysis System
-                      </p>
-                    </div>
-
-                    <p className="text-xs text-neutral-700 leading-relaxed font-serif">
-                      {activePage === 1
-                        ? 'A comprehensive analysis of file scanning techniques, threat detection mechanisms, and AI-based malware identification.'
-                        : `Page ${activePage} of ${selectedFile.name}. Content parsed in isolated read-only preview shell without executing embedded macros or active scripts.`}
-                    </p>
-
-                    <div className="space-y-2 pt-4 text-xs font-serif text-neutral-600">
-                      <div className="h-2 bg-neutral-200 rounded w-full" />
-                      <div className="h-2 bg-neutral-200 rounded w-5/6" />
-                      <div className="h-2 bg-neutral-200 rounded w-4/6" />
-                    </div>
-                  </div>
-
-                  {/* Document Footer */}
-                  <div className="pt-8 border-t border-neutral-200 flex items-center justify-between text-[10px] text-neutral-500 font-sans">
-                    <span>Prepared by <strong>MalVision Team</strong></span>
-                    <span>September 11, 2026</span>
-                  </div>
-                </div>
-
-                {/* Page Thumbnails Selector Row */}
-                <div className="flex items-center space-x-2 pt-1 overflow-x-auto pb-1">
-                  {[1, 2, 3, 4].map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      onClick={() => setActivePage(pageNum)}
-                      className={`w-12 h-14 rounded-lg border flex flex-col justify-between p-1 cursor-pointer transition shrink-0 ${
-                        activePage === pageNum
-                          ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-500/20 ring-2 ring-blue-500/30'
-                          : 'border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-400'
-                      }`}
-                    >
-                      <div className="space-y-1">
-                        <div className="h-1 bg-neutral-400 dark:bg-neutral-500 rounded w-3/4" />
-                        <div className="h-0.5 bg-neutral-300 dark:bg-neutral-600 rounded w-full" />
-                        <div className="h-0.5 bg-neutral-300 dark:bg-neutral-600 rounded w-1/2" />
-                      </div>
-                      <span className="text-[9px] font-bold text-center block text-neutral-600 dark:text-neutral-400">
-                        {pageNum}
-                      </span>
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => setActivePage(5)}
-                    className="w-12 h-14 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-bold text-xs flex items-center justify-center shrink-0 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition cursor-pointer"
-                  >
-                    +{totalPages - 4}
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Column (5 cols): Document Info & Content Overview Cards */}
-              <div className="lg:col-span-5 space-y-4">
-                {/* Card 1: Document Information */}
-                <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-3 shadow-sm">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white flex items-center space-x-2">
-                    <FileText className="w-4 h-4 text-neutral-400" />
-                    <span>Document Information</span>
-                  </h4>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">File name</span>
-                      <span className="font-bold text-neutral-900 dark:text-white truncate max-w-[160px]">
-                        {selectedFile.name}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">File size</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">
-                        {formatFileSize(selectedFile.size)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Total pages</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">{totalPages}</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">File type</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">PDF Document</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Created</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">Sep 10, 2026, 02:14 PM</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Modified</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">
-                        {formatFileModifiedDate(selectedFile)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Author</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">MalVision Team</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Producer</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">Microsoft Word</span>
-                    </div>
-
-                    <div className="flex justify-between py-1">
-                      <span className="text-neutral-500 dark:text-neutral-400">PDF version</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">1.7</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 2: Content Overview */}
-                <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-3 shadow-sm">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white flex items-center space-x-2">
-                    <Activity className="w-4 h-4 text-neutral-400" />
-                    <span>Content Overview</span>
-                  </h4>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Text content</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">Yes</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Images</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">4</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Tables</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">2</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Links</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">3</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Form fields</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">No</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">Embedded files</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">No</span>
-                    </div>
-
-                    <div className="flex justify-between py-1 border-b border-neutral-200/60 dark:border-neutral-800/60">
-                      <span className="text-neutral-500 dark:text-neutral-400">JavaScript</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">
-                        {scanResult.status === 'Safe' ? 'No' : 'Detected'}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between py-1">
-                      <span className="text-neutral-500 dark:text-neutral-400">Encryption</span>
-                      <span className="font-bold text-neutral-900 dark:text-white">No</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════
-             TAB 2 — ANALYSIS MODE
-             ═══════════════════════════════════════════════════════════════ */}
-          {activeTab === 'analysis' && (
-            <div className="p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white">
-                PDF Stream & Structure Analysis
-              </h4>
-
-              <div className="space-y-2 text-xs">
-                <div className="p-3 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                  <span className="font-semibold text-neutral-700 dark:text-neutral-300">Catalog XRef Table</span>
-                  <span className="text-[11px] font-bold text-neutral-400 dark:text-neutral-300">Validated (12 Objects)</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                  <span className="font-semibold text-neutral-700 dark:text-neutral-300">Action Stream Hooks (/OpenAction, /AA)</span>
-                  <span className="text-[11px] font-bold text-neutral-400 dark:text-neutral-300">None Detected</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                  <span className="font-semibold text-neutral-700 dark:text-neutral-300">Font Stream Decoding</span>
-                  <span className="text-[11px] font-bold text-neutral-400 dark:text-neutral-300">Standard TrueType (Helv, Times)</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════
-             TAB 3 — DETAILS MODE
-             ═══════════════════════════════════════════════════════════════ */}
-          {activeTab === 'details' && (
-            <div className="p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900 dark:text-white">
-                PDF Cryptographic Hashes & Attributes
-              </h4>
-
-              <div className="space-y-2 text-xs">
-                <div className="p-3 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                  <span className="text-neutral-500">MD5 Hash</span>
-                  <span className="font-mono text-neutral-900 dark:text-white">e3b0c44298fc1c149afbf4c8996fb924</span>
-                </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-[#18181C] border border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-                  <span className="text-neutral-500">SHA-256 Hash</span>
-                  <span className="font-mono text-neutral-900 dark:text-white">44d88612fea8a8f36de82e1278abb02f</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════════
-             BOTTOM SECURITY RESULT BANNER (Matching Mockup Screenshot)
-             ═══════════════════════════════════════════════════════════════ */}
+          {/* BOTTOM SECTION: SCANNING HISTORY & SECURITY CHECKS */}
           <div className="p-5 sm:p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-5">
             {/* Primary Status Banner */}
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center shrink-0">
-                {scanResult.status === 'Safe' ? (
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                pdfData.isThreat
+                  ? 'bg-rose-500/10 border border-rose-500/30 text-rose-500'
+                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
+              }`}>
+                {!pdfData.isThreat ? (
                   <ShieldCheck className="w-7 h-7" />
                 ) : (
                   <ShieldAlert className="w-7 h-7 text-rose-500" />
@@ -604,22 +409,22 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
               <div className="space-y-0.5">
                 <h3
                   className={`text-xl font-extrabold tracking-tight ${
-                    scanResult.status === 'Safe'
+                    !pdfData.isThreat
                       ? 'text-emerald-500 dark:text-emerald-400'
                       : 'text-rose-500 dark:text-rose-400'
                   }`}
                 >
-                  {scanResult.status === 'Safe' ? 'No Threats Found' : 'Threat Detected'}
+                  {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
                 </h3>
                 <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium">
-                  {scanResult.status === 'Safe'
-                    ? 'This PDF appears to be safe. You can review the content above and share it if needed.'
-                    : 'High risk malicious triggers identified in PDF stream.'}
+                  {!pdfData.isThreat
+                    ? 'This PDF appears to be safe. PDF structure and streams have been verified.'
+                    : 'Threat indicators identified in PDF binary stream.'}
                 </p>
               </div>
             </div>
 
-            {/* 6 Grid Analysis Status Cards (Neutral/Light Indicators, NO walls of green checkmarks) */}
+            {/* Dynamic Analysis Checks (If no threat, relevant checks show Clean) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
                 <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
@@ -629,7 +434,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                   Behavior Analysis
                 </h5>
                 <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  Clean
+                  {pdfData.isThreat ? 'Suspicious' : 'Clean'}
                 </span>
               </div>
 
@@ -641,7 +446,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                   Malware Detection
                 </h5>
                 <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  Clean
+                  {pdfData.isThreat ? 'Threat Found' : 'Clean'}
                 </span>
               </div>
 
@@ -653,7 +458,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                   Static Analysis
                 </h5>
                 <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  Clean
+                  {pdfData.hasJavaScript ? 'JS Flagged' : 'Clean'}
                 </span>
               </div>
 
@@ -695,7 +500,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* Bottom Actions Row (Scan Another File & Download Report) */}
+          {/* Bottom Actions Row */}
           <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               type="button"
