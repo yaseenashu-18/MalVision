@@ -67,55 +67,56 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
     anchor.remove();
   };
 
-  // Verdict Badge Styling
+  // Minimal Monochrome Verdict Badge Styling
   const getVerdictBadge = () => {
+    const baseBadge = 'flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 border border-neutral-300 dark:border-neutral-700 text-xs font-bold uppercase tracking-wider';
     switch (result.overall_verdict) {
       case 'safe':
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4" />
+          <div className={baseBadge}>
+            <ShieldCheck className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Safe Domain</span>
           </div>
         );
       case 'low_risk':
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-xs font-bold uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4" />
+          <div className={baseBadge}>
+            <ShieldCheck className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Low Risk</span>
           </div>
         );
       case 'suspicious':
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold uppercase tracking-wider">
-            <AlertTriangle className="w-4 h-4" />
+          <div className={baseBadge}>
+            <AlertTriangle className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Suspicious</span>
           </div>
         );
       case 'phishing':
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30 text-xs font-bold uppercase tracking-wider">
-            <AlertOctagon className="w-4 h-4" />
+          <div className={baseBadge}>
+            <AlertOctagon className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Phishing Risk</span>
           </div>
         );
       case 'scam':
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-xs font-bold uppercase tracking-wider">
-            <AlertOctagon className="w-4 h-4" />
+          <div className={baseBadge}>
+            <AlertOctagon className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Scam / Fraud</span>
           </div>
         );
       case 'malicious':
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 text-xs font-bold uppercase tracking-wider">
-            <ShieldAlert className="w-4 h-4" />
+          <div className={baseBadge}>
+            <ShieldAlert className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Malicious Threat</span>
           </div>
         );
       default:
         return (
-          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-neutral-500/10 text-neutral-600 dark:text-neutral-400 border border-neutral-500/30 text-xs font-bold uppercase tracking-wider">
-            <HelpCircle className="w-4 h-4" />
+          <div className={baseBadge}>
+            <HelpCircle className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Inconclusive</span>
           </div>
         );
@@ -125,23 +126,19 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
   const getStatusPill = (status: ResultStatus) => {
     switch (status) {
       case 'detected':
-        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">DETECTED</span>;
+        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">DETECTED</span>;
       case 'not_detected':
-        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">CLEAN</span>;
+        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700 font-mono">CLEAN</span>;
       case 'suspicious':
-        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">SUSPICIOUS</span>;
+        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-200 dark:bg-neutral-700 text-neutral-900 dark:text-white">SUSPICIOUS</span>;
       case 'unavailable':
-        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-500/15 text-neutral-500 dark:text-neutral-400 border border-neutral-500/20">UNAVAILABLE</span>;
+        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">UNAVAILABLE</span>;
       default:
-        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-500/15 text-neutral-500 dark:text-neutral-400 border border-neutral-500/20">{status.toUpperCase()}</span>;
+        return <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700">{status.toUpperCase()}</span>;
     }
   };
 
-  // Score Color Gauge
   const score = result.risk_score;
-  const scoreColor =
-    score >= 65 ? 'text-rose-500 stroke-rose-500' : score >= 40 ? 'text-amber-500 stroke-amber-500' : score >= 16 ? 'text-blue-500 stroke-blue-500' : 'text-emerald-500 stroke-emerald-500';
-
   const circumference = 2 * Math.PI * 42;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
@@ -172,16 +169,16 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={handleCopyLink}
-            className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition flex items-center space-x-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition flex items-center space-x-1.5 cursor-pointer"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-neutral-900 dark:text-white" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? 'Copied' : 'Copy URL'}</span>
           </button>
 
           {onRescan && (
             <button
               onClick={onRescan}
-              className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition flex items-center space-x-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 text-xs font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition flex items-center space-x-1.5 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Rescan</span>
@@ -216,7 +213,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
                 cx="50"
                 cy="50"
                 r="42"
-                className={`transition-all duration-1000 stroke-current ${scoreColor}`}
+                className="stroke-neutral-900 dark:stroke-white transition-all duration-1000"
                 strokeWidth="8"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
@@ -225,7 +222,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className={`text-2xl font-black ${scoreColor.split(' ')[0]}`}>{score}</span>
+              <span className="text-2xl font-black text-neutral-900 dark:text-white">{score}</span>
               <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Risk Score</span>
             </div>
           </div>
@@ -247,7 +244,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
             href={result.normalized_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-lg font-extrabold text-neutral-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition flex items-center space-x-2 truncate max-w-xl group"
+            className="text-lg font-extrabold text-neutral-900 dark:text-white hover:underline transition flex items-center space-x-2 truncate max-w-xl group"
           >
             <span className="truncate">{result.normalized_url}</span>
             <ExternalLink className="w-4 h-4 opacity-50 group-hover:opacity-100 transition shrink-0" />
@@ -257,13 +254,13 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-xs border-t border-neutral-100 dark:border-neutral-800/80">
             <div>
               <span className="text-[11px] text-neutral-400 block">Checks Passed</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="font-bold text-neutral-900 dark:text-white">
                 {sections.verdict_summary.checks_passed} Checked
               </span>
             </div>
             <div>
               <span className="text-[11px] text-neutral-400 block">Threats Flagged</span>
-              <span className={`font-bold ${sections.verdict_summary.checks_detected > 0 ? 'text-rose-500' : 'text-neutral-700 dark:text-neutral-300'}`}>
+              <span className="font-bold text-neutral-900 dark:text-white">
                 {sections.verdict_summary.checks_detected} Detected
               </span>
             </div>
@@ -288,13 +285,13 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* Verdict Reasons / Risk Factors */}
         <div className="p-4 rounded-xl bg-white dark:bg-[#121216] border border-neutral-200/80 dark:border-neutral-800 space-y-2.5">
           <h3 className="text-xs font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center space-x-1.5">
-            <AlertOctagon className="w-3.5 h-3.5 text-rose-500" />
+            <AlertOctagon className="w-3.5 h-3.5 text-neutral-700 dark:text-neutral-300" />
             <span>Verdict Reasons & Risk Drivers</span>
           </h3>
           <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
             {result.verdict_reasons.map((reason, idx) => (
               <div key={idx} className="flex items-start space-x-2 text-xs p-2 rounded-lg bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700 dark:bg-neutral-300 mt-1.5 shrink-0" />
                 <span className="text-neutral-700 dark:text-neutral-300 font-medium">{reason}</span>
               </div>
             ))}
@@ -304,19 +301,19 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* Positive & Negative Indicators */}
         <div className="p-4 rounded-xl bg-white dark:bg-[#121216] border border-neutral-200/80 dark:border-neutral-800 space-y-2.5">
           <h3 className="text-xs font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center space-x-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <ShieldCheck className="w-3.5 h-3.5 text-neutral-700 dark:text-neutral-300" />
             <span>Security Indicators</span>
           </h3>
           <div className="space-y-2 text-xs">
             <div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide block mb-1">
+              <span className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide block mb-1">
                 Positive Signs
               </span>
               {result.positive_indicators.length > 0 ? (
                 <div className="space-y-1">
                   {result.positive_indicators.map((pos, idx) => (
-                    <div key={idx} className="flex items-center space-x-2 text-emerald-700 dark:text-emerald-300">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                    <div key={idx} className="flex items-center space-x-2 text-neutral-800 dark:text-neutral-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-neutral-600 dark:text-neutral-400" />
                       <span>{pos}</span>
                     </div>
                   ))}
@@ -328,13 +325,13 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
 
             {result.negative_indicators.length > 0 && (
               <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
-                <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wide block mb-1">
+                <span className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide block mb-1">
                   Negative Indicators
                 </span>
                 <div className="space-y-1">
                   {result.negative_indicators.map((neg, idx) => (
-                    <div key={idx} className="flex items-center space-x-2 text-rose-700 dark:text-rose-300">
-                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                    <div key={idx} className="flex items-center space-x-2 text-neutral-800 dark:text-neutral-200">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-neutral-600 dark:text-neutral-400" />
                       <span>{neg}</span>
                     </div>
                   ))}
@@ -350,7 +347,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* Threat Grid */}
         <div className="p-4 rounded-xl bg-white dark:bg-[#121216] border border-neutral-200/80 dark:border-neutral-800 space-y-3">
           <h3 className="text-xs font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-blue-500" />
+            <Shield className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>Threat Detection Matrix</span>
           </h3>
 
@@ -375,7 +372,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* Redirect Chain Diagram */}
         <div className="p-4 rounded-xl bg-white dark:bg-[#121216] border border-neutral-200/80 dark:border-neutral-800 space-y-3">
           <h3 className="text-xs font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center space-x-2">
-            <Link className="w-4 h-4 text-indigo-500" />
+            <Link className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />
             <span>HTTP Redirect Chain ({sections.redirect_analysis.redirect_count} Redirects)</span>
           </h3>
 
@@ -409,13 +406,13 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
       {/* Level 4: Expandable Technical Section Drawers (Accordion) */}
       <div className="space-y-3 pt-2">
         <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-          Technical Analysis Modules (25 Technical Drawers)
+          Technical Analysis Modules
         </h3>
 
         {/* 1. URL Analysis */}
         <AccordionDrawer
           title="URL Structure & Syntax Analysis"
-          icon={<Code className="w-4 h-4 text-emerald-500" />}
+          icon={<Code className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.url_analysis}
           onToggle={() => toggleSection('url_analysis')}
         >
@@ -460,7 +457,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 2. Phishing Analysis */}
         <AccordionDrawer
           title="Phishing & Social Engineering Analysis"
-          icon={<AlertOctagon className="w-4 h-4 text-orange-500" />}
+          icon={<AlertOctagon className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.phishing_analysis}
           onToggle={() => toggleSection('phishing_analysis')}
         >
@@ -487,7 +484,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 3. Brand Impersonation */}
         <AccordionDrawer
           title="Brand Impersonation & Spoofing"
-          icon={<ShieldAlert className="w-4 h-4 text-rose-500" />}
+          icon={<ShieldAlert className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.brand_impersonation}
           onToggle={() => toggleSection('brand_impersonation')}
         >
@@ -514,7 +511,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 4. Domain Info & WHOIS */}
         <AccordionDrawer
           title="Domain Registration & WHOIS Information"
-          icon={<Globe className="w-4 h-4 text-blue-500" />}
+          icon={<Globe className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.domain_information}
           onToggle={() => toggleSection('domain_information')}
         >
@@ -541,7 +538,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 5. IP & Infrastructure */}
         <AccordionDrawer
           title="IP Address & Network Infrastructure"
-          icon={<Server className="w-4 h-4 text-indigo-500" />}
+          icon={<Server className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.ip_infrastructure}
           onToggle={() => toggleSection('ip_infrastructure')}
         >
@@ -570,14 +567,14 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 6. SSL / TLS Certificate */}
         <AccordionDrawer
           title="SSL / TLS Transport Security Certificate"
-          icon={<Lock className="w-4 h-4 text-emerald-500" />}
+          icon={<Lock className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.ssl_tls}
           onToggle={() => toggleSection('ssl_tls')}
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
               <span className="text-[11px] text-neutral-400 block">HTTPS Enabled</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{sections.ssl_tls.https_enabled ? 'Yes' : 'No'}</span>
+              <span className="font-semibold text-neutral-900 dark:text-white">{sections.ssl_tls.https_enabled ? 'Yes' : 'No'}</span>
             </div>
             <div>
               <span className="text-[11px] text-neutral-400 block">Certificate Issuer</span>
@@ -597,7 +594,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 7. HTTP Headers & Security Audit */}
         <AccordionDrawer
           title="HTTP Response Headers & Security Configuration"
-          icon={<FileCode className="w-4 h-4 text-purple-500" />}
+          icon={<FileCode className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.http_analysis}
           onToggle={() => toggleSection('http_analysis')}
         >
@@ -626,7 +623,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 8. JavaScript & Script Audit */}
         <AccordionDrawer
           title="JavaScript & Obfuscation Analysis"
-          icon={<Terminal className="w-4 h-4 text-amber-500" />}
+          icon={<Terminal className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.javascript_analysis}
           onToggle={() => toggleSection('javascript_analysis')}
         >
@@ -653,7 +650,7 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         {/* 9. Technology Stack */}
         <AccordionDrawer
           title="Detected Technology Stack & Frameworks"
-          icon={<Cpu className="w-4 h-4 text-cyan-500" />}
+          icon={<Cpu className="w-4 h-4 text-neutral-700 dark:text-neutral-300" />}
           isOpen={openSections.technology_detection}
           onToggle={() => toggleSection('technology_detection')}
         >
@@ -678,11 +675,11 @@ export const UrlScanResult: React.FC<UrlScanResultProps> = ({ result, onNewScan,
         </AccordionDrawer>
       </div>
 
-      {/* MalVision AI Summary — Clean & Minimal at the bottom */}
-      <div className="p-5 rounded-2xl bg-neutral-900 text-white dark:bg-[#18181D] dark:border dark:border-neutral-800 space-y-3 shadow-lg">
-        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <span>MalVision AI — Unified Executive Summary</span>
+      {/* MalVision AI Summary — Minimal & Clean Monochrome */}
+      <div className="p-5 rounded-2xl bg-neutral-900 text-white dark:bg-[#18181D] dark:border dark:border-neutral-800 space-y-3 shadow-sm">
+        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
+          <Sparkles className="w-4 h-4 text-neutral-300" />
+          <span>MalVision AI — Executive Summary</span>
         </div>
 
         <p className="text-sm text-neutral-200 leading-relaxed">

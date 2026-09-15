@@ -441,7 +441,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
             <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
               <div className="space-y-1 text-center sm:text-left">
                 <h4 className="text-base font-bold text-neutral-900 dark:text-white flex items-center justify-center sm:justify-start space-x-2">
-                  <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                  <ShieldCheck className="w-5 h-5 text-neutral-700 dark:text-neutral-300" />
                   <span>Ready to Analyze Threat Risks?</span>
                 </h4>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-lg">
@@ -478,13 +478,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 {/* Left Side: Result Verdict, Subtitle & Accurate Reason */}
                 <div className="space-y-3 min-w-0 flex-1">
                   <div className="space-y-1">
-                    <h3
-                      className={`text-2xl sm:text-3xl font-black tracking-tight ${
-                        !pdfData.isThreat
-                          ? 'text-emerald-500 dark:text-emerald-400'
-                          : 'text-rose-500 dark:text-rose-400'
-                      }`}
-                    >
+                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900 dark:text-white">
                       {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
                     </h3>
                     <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
@@ -515,7 +509,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                         cx="50"
                         cy="50"
                         r="42"
-                        className={!pdfData.isThreat ? 'stroke-emerald-500' : 'stroke-rose-500'}
+                        className="stroke-neutral-900 dark:stroke-white"
                         strokeWidth="7"
                         strokeDasharray={264}
                         strokeDashoffset={264 - (264 * pdfData.calculatedScore) / 100}
