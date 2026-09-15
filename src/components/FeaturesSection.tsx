@@ -55,7 +55,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onScanSelect }
       title: 'Sandbox Preview',
       description: 'Preview document text and structures safely in an isolated browser environment.',
       icon: Eye,
-      tab: 'preview-file' as ScannerTabId
+      tab: 'file-scan' as ScannerTabId
     },
     {
       id: 'pre-execution',

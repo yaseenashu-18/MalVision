@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Eye, FileSpreadsheet, Link as LinkIcon, Hash } from 'lucide-react';
+import { FileText, FileSpreadsheet, Link as LinkIcon, Hash } from 'lucide-react';
 import type { ScannerTabId } from '../types';
 
 interface ScannerTabsProps {
@@ -10,14 +10,13 @@ interface ScannerTabsProps {
 export const ScannerTabs: React.FC<ScannerTabsProps> = ({ activeTab, onTabChange }) => {
   const tabs: { id: ScannerTabId; label: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'file-scan', label: 'File Scan', icon: FileText },
-    { id: 'preview-file', label: 'Preview File', icon: Eye },
     { id: 'pdf-inspector', label: 'PDF Inspector', icon: FileSpreadsheet },
     { id: 'url-scan', label: 'URL Scan', icon: LinkIcon },
     { id: 'hash-analysis', label: 'Hash Analysis', icon: Hash }
   ];
 
   return (
-    <div className="w-full bg-neutral-100/70 dark:bg-neutral-800/50 p-1 rounded-2xl border-none flex sm:grid sm:grid-cols-5 gap-1 overflow-x-auto touch-pan-x no-scrollbar scrollbar-none outline-none focus:outline-none select-none">
+    <div className="w-full bg-neutral-100/70 dark:bg-neutral-800/50 p-1 rounded-2xl border-none flex sm:grid sm:grid-cols-4 gap-1 overflow-x-auto touch-pan-x no-scrollbar scrollbar-none outline-none focus:outline-none select-none">
       {tabs.map((t) => {
         const Icon = t.icon;
         const isActive = activeTab === t.id;

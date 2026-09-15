@@ -1,6 +1,6 @@
 export type ThemeMode = 'light' | 'dark' | 'system';
 
-export type ScannerTabId = 'file-scan' | 'preview-file' | 'pdf-inspector' | 'url-scan' | 'hash-analysis';
+export type ScannerTabId = 'file-scan' | 'pdf-inspector' | 'url-scan' | 'hash-analysis';
 
 export type ThreatStatus = 'Safe' | 'Suspicious' | 'Malicious' | 'Unknown';
 
