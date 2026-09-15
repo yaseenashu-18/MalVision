@@ -18,7 +18,13 @@ export const MalVisionAiSection: React.FC<MalVisionAiSectionProps> = ({ scanResu
   return (
     <div className="p-4 sm:p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-2 text-left shadow-xs">
       <div className="flex items-center space-x-2">
-        <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
+        <div
+          className={`p-1.5 rounded-lg ${
+            isSafe
+              ? 'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400'
+              : 'bg-rose-500/10 text-rose-500 dark:text-rose-400'
+          }`}
+        >
           <Sparkles className="w-4 h-4" />
         </div>
         <h4 className="text-xs font-bold text-neutral-900 dark:text-white tracking-tight">

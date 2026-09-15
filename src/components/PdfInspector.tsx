@@ -478,7 +478,13 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 {/* Left Side: Result Verdict, Subtitle & Accurate Reason */}
                 <div className="space-y-3 min-w-0 flex-1">
                   <div className="space-y-1">
-                    <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-neutral-900 dark:text-white">
+                    <h3
+                      className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                        !pdfData.isThreat
+                          ? 'text-emerald-500 dark:text-emerald-400'
+                          : 'text-rose-500 dark:text-rose-400'
+                      }`}
+                    >
                       {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
                     </h3>
                     <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
@@ -509,7 +515,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                         cx="50"
                         cy="50"
                         r="42"
-                        className="stroke-neutral-900 dark:stroke-white"
+                        className={!pdfData.isThreat ? 'stroke-emerald-500' : 'stroke-rose-500'}
                         strokeWidth="7"
                         strokeDasharray={264}
                         strokeDashoffset={264 - (264 * pdfData.calculatedScore) / 100}
@@ -518,7 +524,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
+                      <span className={`text-xl sm:text-2xl font-black tracking-tight ${!pdfData.isThreat ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {pdfData.calculatedScore}
                       </span>
                       <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider -mt-0.5">
