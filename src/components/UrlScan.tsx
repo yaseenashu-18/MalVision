@@ -1,58 +1,117 @@
 import React, { useState } from 'react';
-import { Link as LinkIcon, Loader2, Globe, Search } from 'lucide-react';
-import { analyzeUrl } from '../lib/scanEngine';
-import { saveScanToHistory } from '../lib/historyStore';
-import type { ScanResultData } from '../types';
-import { ScanResult } from './ScanResult';
+import { Link as LinkIcon, Loader2, Globe, Search, ShieldCheck, AlertCircle } from 'lucide-react';
+import type { StandardURLScanResult, ScanStageStatus } from '../types/urlScanner';
+import { performUrlScan, SAMPLE_URLS } from '../lib/urlScannerApi';
+import { UrlScanResult } from './UrlScanResult';
 
 interface UrlScanProps {
   user?: { name: string; email: string } | null;
 }
 
-export const UrlScan: React.FC<UrlScanProps> = ({ user }) => {
+export const UrlScan: React.FC<UrlScanProps> = ({ user: _user }) => {
   const [inputUrl, setInputUrl] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
+  const [scanStage, setScanStage] = useState<{ stage: ScanStageStatus; message: string }>({
+    stage: 'validating',
+    message: 'Initializing MALVISION URL Engine...',
+  });
+  const [scanResult, setScanResult] = useState<StandardURLScanResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputUrl.trim()) return;
+  const handleScan = async (urlToScan?: string) => {
+    const target = urlToScan || inputUrl;
+    if (!target.trim()) return;
 
     setIsScanning(true);
+    setErrorMsg(null);
+    setScanResult(null);
+
     try {
-      const res = await analyzeUrl(inputUrl);
-      saveScanToHistory(res, user?.email);
-      setScanResult(res);
+      const result = await performUrlScan(target, (stage, message) => {
+        setScanStage({ stage, message });
+      });
+
+      if (result.scan_status === 'failed' && result.errors.length > 0) {
+        setErrorMsg(result.errors[0]);
+      } else {
+        setScanResult(result);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Scan failed to complete due to a network anomaly.');
     } finally {
       setIsScanning(false);
     }
   };
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleScan();
+  };
+
   if (scanResult) {
-    return <ScanResult result={scanResult} onNewScan={() => setScanResult(null)} />;
+    return (
+      <UrlScanResult
+        result={scanResult}
+        onNewScan={() => {
+          setScanResult(null);
+          setErrorMsg(null);
+        }}
+        onRescan={() => handleScan(scanResult.url)}
+      />
+    );
   }
 
   return (
-    <div className="w-full h-full border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-neutral-50/40 dark:bg-neutral-800/20">
+    <div className="w-full h-full border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center text-center bg-neutral-50/40 dark:bg-neutral-800/20 transition-all">
       {isScanning ? (
-        <div className="flex flex-col items-center space-y-3">
-          <Loader2 className="w-10 h-10 text-neutral-800 dark:text-neutral-200 animate-spin" />
-          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">Tracing URL redirects & checking SSL certificates...</p>
-        </div>
-      ) : (
-        <form onSubmit={handleScan} className="w-full max-w-lg space-y-6">
-          <div className="w-14 h-14 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center mx-auto shadow-xs">
-            <Globe className="w-7 h-7 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
+        <div className="w-full max-w-md space-y-6 py-8">
+          <div className="relative w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto">
+            <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
+            <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 absolute" />
           </div>
 
-          <div>
-            <h3 className="text-lg font-bold text-neutral-900 dark:text-white leading-tight">
-              Inspect suspicious URL or Link
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-white uppercase tracking-wider">
+              MALVISION URL Stream Analysis
             </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-              Verify links for phishing attempts, malicious redirects, and credential traps.
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-mono animate-pulse">
+              {scanStage.message}
             </p>
           </div>
+
+          {/* Dynamic Stage Indicator */}
+          <div className="w-full bg-neutral-200 dark:bg-neutral-800 rounded-full h-1.5 overflow-hidden">
+            <div className="bg-blue-600 h-1.5 rounded-full animate-pulse w-3/4 transition-all duration-300" />
+          </div>
+
+          <div className="grid grid-cols-4 gap-1 text-[10px] text-neutral-400 font-mono">
+            <span className={scanStage.stage === 'validating' ? 'text-blue-500 font-bold' : ''}>VALIDATE</span>
+            <span className={scanStage.stage === 'resolving' ? 'text-blue-500 font-bold' : ''}>RESOLVE</span>
+            <span className={scanStage.stage === 'reputation' ? 'text-blue-500 font-bold' : ''}>INTEL</span>
+            <span className={scanStage.stage === 'security' || scanStage.stage === 'building' ? 'text-blue-500 font-bold' : ''}>REPORT</span>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleFormSubmit} className="w-full max-w-xl space-y-6">
+          <div className="w-16 h-16 rounded-2xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center mx-auto shadow-xs">
+            <Globe className="w-8 h-8 text-neutral-800 dark:text-neutral-200 stroke-[1.5]" />
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-xl font-extrabold text-neutral-900 dark:text-white leading-tight">
+              Unified Advanced URL Scanner
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-md mx-auto">
+              Scan links for phishing traps, brand impersonation, malware payloads, SSL risks, and malicious redirects.
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center justify-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
           <div className="relative flex items-center">
             <LinkIcon className="w-5 h-5 absolute left-4 text-neutral-400" />
@@ -60,7 +119,7 @@ export const UrlScan: React.FC<UrlScanProps> = ({ user }) => {
               type="text"
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
-              placeholder="https://example.com"
+              placeholder="Paste link to scan (e.g. https://example.com)"
               className="w-full pl-12 pr-32 py-3.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition"
               required
             />
@@ -73,24 +132,27 @@ export const UrlScan: React.FC<UrlScanProps> = ({ user }) => {
             </button>
           </div>
 
-          {/* Quick sample chips */}
-          <div className="flex items-center justify-center space-x-2 text-xs text-neutral-500">
-            <span>Try sample:</span>
-            <button
-              type="button"
-              onClick={() => setInputUrl('https://example.com')}
-              className="underline hover:text-neutral-900 dark:hover:text-white cursor-pointer"
-            >
-              https://example.com
-            </button>
-            <span>•</span>
-            <button
-              type="button"
-              onClick={() => setInputUrl('https://phish-secure-login-verify.com')}
-              className="underline hover:text-neutral-900 dark:hover:text-white cursor-pointer text-amber-600 dark:text-amber-400"
-            >
-              Suspicious URL
-            </button>
+          {/* Quick Preset Chips */}
+          <div className="space-y-2 pt-2">
+            <span className="text-[11px] text-neutral-400 font-semibold uppercase tracking-wider block">
+              Quick Test Examples
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+              {SAMPLE_URLS.map((sample, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setInputUrl(sample.url);
+                    handleScan(sample.url);
+                  }}
+                  className="px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-400 dark:hover:border-neutral-600 text-neutral-700 dark:text-neutral-300 text-xs transition cursor-pointer flex items-center space-x-1.5"
+                >
+                  <ShieldCheck className="w-3 h-3 text-neutral-400" />
+                  <span>{sample.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </form>
       )}
