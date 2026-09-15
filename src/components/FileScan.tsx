@@ -425,22 +425,17 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
 
   // Calculate Security Score & Level for Result Page
   const getSecurityScoreData = (result: ScanResultData) => {
-    let score = 92;
-    let scoreLevel = 'Low risk';
+    let score = 95;
 
     if (result.status === 'Safe') {
-      score = result.score <= 20 ? 100 - result.score : result.score >= 80 ? result.score : 92;
-      if (score >= 95) scoreLevel = 'Very safe';
-      else scoreLevel = 'Low risk';
+      score = result.score <= 20 ? 100 - result.score : result.score >= 80 ? result.score : 95;
     } else if (result.status === 'Suspicious') {
       score = result.score >= 60 && result.score <= 79 ? result.score : 68;
-      scoreLevel = 'Moderate risk';
     } else {
       score = result.score < 60 ? result.score : 35;
-      scoreLevel = 'High risk';
     }
 
-    return { score, scoreLevel };
+    return { score };
   };
 
   return (
@@ -739,7 +734,7 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-         9. RESULT PAGE (Clean, Minimal, Side-by-Side Date/Duration Row & Vertical Detailed Analysis List with Individual Scores on Right)
+         9. RESULT PAGE (Score Meter Gauge on Right, NO DOT between Date & Duration)
          ═══════════════════════════════════════════════════════════════ */}
       {stage === 'RESULT' && scanResult && selectedFile && (() => {
         const securityData = getSecurityScoreData(scanResult);
@@ -759,44 +754,70 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
             {/* Selected File Preview Card at Top */}
             {renderSelectedFileCard(true)}
 
-            {/* Primary Security Result & Score Card */}
-            <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-4">
-              {/* 1. Result Title & Subtitle */}
-              <div className="space-y-1">
-                <h3
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${
-                    isSafe ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
-                  }`}
-                >
-                  {isSafe ? 'No Threats Found' : 'Threat Detected'}
-                </h3>
-                <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium">
-                  {isSafe
-                    ? 'This file appears to be safe.'
-                    : 'High risk content identified.'}
-                </p>
-              </div>
+            {/* Primary Security Result & Score Meter Card */}
+            <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex items-center justify-between gap-6 shadow-sm">
+              {/* Left Column: Result Title, Subtitle, Date & Duration (NO DOT SEPARATOR) */}
+              <div className="space-y-4 min-w-0 flex-1">
+                <div className="space-y-1">
+                  <h3
+                    className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                      isSafe ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
+                    }`}
+                  >
+                    {isSafe ? 'No Threats Found' : 'Threat Detected'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium">
+                    {isSafe
+                      ? 'This file appears to be safe.'
+                      : 'High risk content identified.'}
+                  </p>
+                </div>
 
-              {/* 2. Security Score Prominently Displayed as XX / 100 */}
-              <div className="pt-2">
-                <div className="inline-flex items-baseline space-x-1.5">
-                  <span className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white tracking-tight">
-                    {securityData.score}
-                  </span>
-                  <span className="text-lg font-bold text-neutral-400 dark:text-neutral-500">
-                    / 100
-                  </span>
-                  <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 ml-2">
-                    Security Score
+                {/* Date/Time and Scan Duration (NO DOT SEPARATOR, CLEAN GAP) */}
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1">
+                  <span>{scanResult.timestamp || formatFileModifiedDate(selectedFile)}</span>
+                  <span>
+                    Scan duration: <strong className="font-semibold text-neutral-700 dark:text-neutral-300">{scanDurationSec}</strong>
                   </span>
                 </div>
               </div>
 
-              {/* 3. Scan Date/Time and Scan Duration in ONE Straight Horizontal Row (NOT stacked vertically) */}
-              <div className="flex flex-wrap items-center space-x-3 text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1">
-                <span>{scanResult.timestamp || formatFileModifiedDate(selectedFile)}</span>
-                <span>•</span>
-                <span>Scan duration: <strong className="font-semibold text-neutral-700 dark:text-neutral-300">{scanDurationSec}</strong></span>
+              {/* Right Column: Real 0-100 Score Meter Ring Gauge */}
+              <div className="flex flex-col items-center justify-center shrink-0">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      className="stroke-neutral-200 dark:stroke-neutral-800"
+                      strokeWidth="7"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      className={isSafe ? 'stroke-emerald-500' : 'stroke-rose-500'}
+                      strokeWidth="7"
+                      strokeDasharray={264}
+                      strokeDashoffset={264 - (264 * securityData.score) / 100}
+                      strokeLinecap="round"
+                      fill="transparent"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
+                      {securityData.score}
+                    </span>
+                    <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider -mt-0.5">
+                      / 100
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 mt-1">
+                  Security Score
+                </span>
               </div>
             </div>
 
