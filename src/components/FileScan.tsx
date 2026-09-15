@@ -13,6 +13,7 @@ import { analyzeFile } from '../lib/scanEngine';
 import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import { downloadMalVisionPdfReport } from '../lib/pdfReportGenerator';
+import { AnalysisDetailModal, getAnalysisCheckDetail, type AnalysisDetailInfo } from './AnalysisDetailModal';
 
 interface FileScanProps {
   user?: { name: string; email: string } | null;
@@ -54,6 +55,7 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
   const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
   const [isStartingScan, setIsStartingScan] = useState(false);
   const [scanDurationSec, setScanDurationSec] = useState<string>('2.1 seconds');
+  const [activeDetailModal, setActiveDetailModal] = useState<AnalysisDetailInfo | null>(null);
 
   const startTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -830,11 +832,17 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
                 {detailedAnalysisItems.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#141417] flex items-center justify-between gap-4 shadow-xs hover:border-neutral-300 dark:hover:border-neutral-700 transition"
+                    onClick={() =>
+                      setActiveDetailModal(
+                        getAnalysisCheckDetail(item.name, !isSafe, false, selectedFile.name)
+                      )
+                    }
+                    className="p-3.5 sm:p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#141417] flex items-center justify-between gap-4 shadow-xs hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group active:scale-[0.99]"
+                    title="Click to view detailed risk breakdown"
                   >
                     {/* Left: Analysis Name & Short Explanation */}
                     <div className="space-y-0.5 min-w-0 flex-1">
-                      <h5 className="text-xs font-bold text-neutral-900 dark:text-white truncate">
+                      <h5 className="text-xs font-bold text-neutral-900 dark:text-white truncate group-hover:text-neutral-700 dark:group-hover:text-neutral-200">
                         {item.name}
                       </h5>
                       <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
@@ -876,6 +884,12 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
                 <span>Download PDF</span>
               </button>
             </div>
+
+            {/* Analysis Detail Modal */}
+            <AnalysisDetailModal
+              info={activeDetailModal}
+              onClose={() => setActiveDetailModal(null)}
+            />
           </div>
         );
       })()}

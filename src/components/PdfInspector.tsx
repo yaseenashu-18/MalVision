@@ -17,6 +17,7 @@ import { saveScanToHistory } from '../lib/historyStore';
 import { extractPdfData, type ExtractedPdfDetails } from '../lib/pdfAnalyzer';
 import type { ScanResultData } from '../types';
 import { downloadMalVisionPdfReport } from './HistoryModal';
+import { AnalysisDetailModal, getAnalysisCheckDetail, type AnalysisDetailInfo } from './AnalysisDetailModal';
 
 interface PdfInspectorProps {
   user?: { name: string; email: string } | null;
@@ -28,6 +29,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
   const [pdfData, setPdfData] = useState<ExtractedPdfDetails | null>(null);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [activeDetailModal, setActiveDetailModal] = useState<AnalysisDetailInfo | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -408,10 +410,18 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
               </div>
             </div>
 
-            {/* Dynamic Analysis Checks (If no threat, relevant checks show Clean) */}
+            {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
+              <div
+                onClick={() =>
+                  setActiveDetailModal(
+                    getAnalysisCheckDetail('Behavior Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                  )
+                }
+                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                title="Click for detailed analysis breakdown"
+              >
+                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
                   <Activity className="w-4 h-4" />
                 </div>
                 <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
@@ -422,8 +432,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
+              <div
+                onClick={() =>
+                  setActiveDetailModal(
+                    getAnalysisCheckDetail('Malware Detection', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                  )
+                }
+                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                title="Click for detailed analysis breakdown"
+              >
+                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
                   <Target className="w-4 h-4" />
                 </div>
                 <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
@@ -434,8 +452,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
+              <div
+                onClick={() =>
+                  setActiveDetailModal(
+                    getAnalysisCheckDetail('Static Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                  )
+                }
+                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                title="Click for detailed analysis breakdown"
+              >
+                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
                   <FileText className="w-4 h-4" />
                 </div>
                 <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
@@ -446,8 +472,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
+              <div
+                onClick={() =>
+                  setActiveDetailModal(
+                    getAnalysisCheckDetail('Heuristic Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                  )
+                }
+                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                title="Click for detailed analysis breakdown"
+              >
+                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
                   <Zap className="w-4 h-4" />
                 </div>
                 <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
@@ -458,8 +492,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
+              <div
+                onClick={() =>
+                  setActiveDetailModal(
+                    getAnalysisCheckDetail('Sandbox Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                  )
+                }
+                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                title="Click for detailed analysis breakdown"
+              >
+                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
                   <Cpu className="w-4 h-4" />
                 </div>
                 <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
@@ -470,8 +512,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] space-y-1">
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit">
+              <div
+                onClick={() =>
+                  setActiveDetailModal(
+                    getAnalysisCheckDetail('Reputation Check', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                  )
+                }
+                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                title="Click for detailed analysis breakdown"
+              >
+                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
                   <Globe className="w-4 h-4" />
                 </div>
                 <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
@@ -504,6 +554,12 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
               <span>Download Report</span>
             </button>
           </div>
+
+          {/* Analysis Check Detail Modal */}
+          <AnalysisDetailModal
+            info={activeDetailModal}
+            onClose={() => setActiveDetailModal(null)}
+          />
         </div>
       )}
     </div>
