@@ -167,22 +167,6 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
         className="hidden"
       />
 
-      {/* Header (No inside tabs) */}
-      <div className="flex items-center justify-between pb-1 border-b border-neutral-200/80 dark:border-neutral-800">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
-            PDF Inspector
-          </h2>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Real-time PDF content preview, metadata extraction, and security verification.
-          </p>
-        </div>
-
-        <div className="hidden sm:flex items-center space-x-2 text-xs font-semibold text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800/80 px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-700">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Know Before You Open.</span>
-        </div>
-      </div>
 
       {/* STATE 1 — NO FILE SELECTED (Drop Zone) */}
       {!selectedFile && (
