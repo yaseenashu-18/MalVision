@@ -482,9 +482,6 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
               </div>
             </div>
 
-            {/* MalVision AI Synthesis Section */}
-            <MalVisionAiSection scanResult={scanResult} fileName={pdfData.fileName} />
-
             {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <div
@@ -607,6 +604,9 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
             </div>
+
+            {/* MalVision AI Summary Section (Below Dynamic Analysis Checks) */}
+            <MalVisionAiSection scanResult={scanResult} fileName={pdfData.fileName} />
           </div>
 
           {/* Bottom Actions Row */}

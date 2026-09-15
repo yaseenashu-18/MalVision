@@ -824,9 +824,6 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
               </div>
             </div>
 
-            {/* MalVision AI Synthesis Section */}
-            <MalVisionAiSection scanResult={scanResult} fileName={selectedFile.name} />
-
             {/* 4. Detailed Analysis (Clean Vertical List with Individual Scores on the RIGHT Side) */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
@@ -867,6 +864,9 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
                 ))}
               </div>
             </div>
+
+            {/* MalVision AI Summary Section (Below Detailed Analysis) */}
+            <MalVisionAiSection scanResult={scanResult} fileName={selectedFile.name} />
 
             {/* 5. Result Actions Bar (Scan Another File & True Direct PDF Download) */}
             <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
