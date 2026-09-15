@@ -13,6 +13,8 @@ import {
   Minus,
   Plus,
   Maximize2,
+  ShieldCheck,
+  Search,
 } from 'lucide-react';
 import { saveScanToHistory } from '../lib/historyStore';
 import { extractPdfData, type ExtractedPdfDetails } from '../lib/pdfAnalyzer';
@@ -27,7 +29,9 @@ interface PdfInspectorProps {
 
 export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const [isExtractingPdf, setIsExtractingPdf] = useState(false);
+  const [isScanningReport, setIsScanningReport] = useState(false);
+  const [hasScannedReport, setHasScannedReport] = useState(false);
   const [pdfData, setPdfData] = useState<ExtractedPdfDetails | null>(null);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -58,7 +62,9 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
     }
 
     setSelectedFile(file);
-    setIsScanning(true);
+    setIsExtractingPdf(true);
+    setHasScannedReport(false);
+    setScanResult(null);
 
     try {
       const blobUrl = URL.createObjectURL(file);
@@ -67,7 +73,20 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
       // Dynamically extract real PDF metadata and structure from file ArrayBuffer
       const extracted = await extractPdfData(file);
       setPdfData(extracted);
+    } catch (err: any) {
+      console.error('Failed to parse PDF:', err);
+    } finally {
+      setIsExtractingPdf(false);
+    }
+  };
 
+  const handleRunThreatScan = async () => {
+    if (!selectedFile || !pdfData) return;
+
+    setIsScanningReport(true);
+    await new Promise((r) => setTimeout(r, 600));
+
+    try {
       const now = new Date();
       const createdAt = now.toISOString();
       const timestamp = now.toLocaleString('en-US', {
@@ -81,16 +100,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
 
       const res: ScanResultData = {
         id: `pdf-${Date.now()}`,
-        target: file.name,
+        target: selectedFile.name,
         targetType: 'pdf',
-        status: extracted.isThreat ? 'Malicious' : 'Safe',
-        score: extracted.calculatedScore,
-        summary: extracted.isThreat
-          ? `Threat detected in PDF stream analysis for ${file.name}.`
-          : `PDF structure and content validated for ${file.name}. No threats detected.`,
-        explanation: extracted.verdictReason,
-        findings: extracted.isThreat
-          ? extracted.threatDetails.map((detail) => ({
+        status: pdfData.isThreat ? 'Malicious' : 'Safe',
+        score: pdfData.calculatedScore,
+        summary: pdfData.isThreat
+          ? `Threat detected in PDF stream analysis for ${selectedFile.name}.`
+          : `PDF structure and content validated for ${selectedFile.name}. No threats detected.`,
+        explanation: pdfData.verdictReason,
+        findings: pdfData.isThreat
+          ? pdfData.threatDetails.map((detail) => ({
               type: 'danger',
               title: 'Threat Detected',
               detail,
@@ -99,33 +118,34 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
               {
                 type: 'success',
                 title: 'PDF Structure Validated',
-                detail: `PDF version ${extracted.pdfVersion} with ${extracted.totalPages} page(s).`,
+                detail: `PDF version ${pdfData.pdfVersion} with ${pdfData.totalPages} page(s).`,
               },
               {
                 type: 'info',
                 title: 'Content Verification',
-                detail: `Text: ${extracted.hasText ? 'Present' : 'None'}, Images: ${extracted.imageCount}, Links: ${extracted.linkCount}.`,
+                detail: `Text: ${pdfData.hasText ? 'Present' : 'None'}, Images: ${pdfData.imageCount}, Links: ${pdfData.linkCount}.`,
               },
             ],
-        recommendedAction: extracted.isThreat
+        recommendedAction: pdfData.isThreat
           ? 'Quarantine or delete this PDF document. Do not execute embedded scripts.'
           : 'PDF document is safe to view and process.',
         createdAt,
         timestamp,
         metadata: {
-          fileSize: extracted.fileSizeFormatted,
-          pageCount: extracted.totalPages,
-          javascriptDetected: extracted.hasJavaScript,
+          fileSize: pdfData.fileSizeFormatted,
+          pageCount: pdfData.totalPages,
+          javascriptDetected: pdfData.hasJavaScript,
           hiddenLayers: false,
         },
       };
 
       saveScanToHistory(res, user?.email);
       setScanResult(res);
+      setHasScannedReport(true);
     } catch (err: any) {
-      console.error('Failed to parse PDF:', err);
+      console.error('Failed to scan PDF threats:', err);
     } finally {
-      setIsScanning(false);
+      setIsScanningReport(false);
     }
   };
 
@@ -157,6 +177,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
     setSelectedFile(null);
     setPdfData(null);
     setScanResult(null);
+    setHasScannedReport(false);
     setZoomLevel(100);
   };
 
@@ -196,23 +217,23 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
         </div>
       )}
 
-      {/* STATE 2 — SCANNING LOADING STATE */}
-      {selectedFile && isScanning && (
+      {/* STATE 2 — EXTRACTING PDF METADATA LOADING STATE */}
+      {selectedFile && isExtractingPdf && (
         <div className="w-full flex-1 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] p-12 flex flex-col items-center justify-center text-center space-y-4">
           <Loader2 className="w-10 h-10 text-neutral-900 dark:text-white animate-spin" />
           <div className="space-y-1">
             <h3 className="text-base font-bold text-neutral-900 dark:text-white">
-              Parsing PDF Binary Streams & Structure...
+              Loading PDF Document & Extracting Properties...
             </h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Extracting metadata, pages, font objects, and scanning for active script triggers.
+              Reading pages, text streams, dates, and embedded elements.
             </p>
           </div>
         </div>
       )}
 
-      {/* STATE 3 — PDF INSPECTED (Preview + Extracted PDF Information + Scan History) */}
-      {selectedFile && !isScanning && pdfData && scanResult && (
+      {/* STATE 3 — PDF LOADED (PDF Preview + Document Info + Content Overview) */}
+      {selectedFile && !isExtractingPdf && pdfData && (
         <div className="w-full flex-1 flex flex-col justify-between space-y-5 animate-in fade-in duration-200">
           {/* Selected File Card Header */}
           <div className="p-4 sm:p-5 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex items-center justify-between gap-4 shadow-sm">
@@ -288,7 +309,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </div>
               </div>
 
-              {/* PDF Preview Container Box (No Slide, Full Scrollable PDF with Zoom) */}
+              {/* PDF Preview Container Box (Scrollable PDF with Zoom) */}
               <div className="w-full h-[540px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#121215] overflow-auto shadow-inner relative">
                 {pdfBlobUrl ? (
                   <iframe
@@ -415,199 +436,235 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* BOTTOM SECTION: SCANNING HISTORY & ACCURATE SECURITY SCORE METER */}
-          <div className="p-5 sm:p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-5 shadow-sm">
-            {/* Primary Security Score Meter & Verdict Banner */}
-            <div className="flex items-center justify-between gap-6">
-              {/* Left Side: Result Verdict, Subtitle & Accurate Reason */}
-              <div className="space-y-3 min-w-0 flex-1">
-                <div className="space-y-1">
-                  <h3
-                    className={`text-2xl sm:text-3xl font-black tracking-tight ${
-                      !pdfData.isThreat
-                        ? 'text-emerald-500 dark:text-emerald-400'
-                        : 'text-rose-500 dark:text-rose-400'
-                    }`}
-                  >
-                    {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
-                    {pdfData.verdictReason}
-                  </p>
-                </div>
-
-                <div className="flex items-center space-x-4 text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1">
-                  <span>Inspected at: <strong className="text-neutral-700 dark:text-neutral-300">{scanResult.timestamp}</strong></span>
-                  <span>•</span>
-                  <span>Pages analyzed: <strong className="text-neutral-700 dark:text-neutral-300">{pdfData.totalPages}</strong></span>
-                </div>
+          {/* ACTION BUTTON — SCAN THIS REPORT (BEFORE THREAT RESULT IS TRIGGERED) */}
+          {!hasScannedReport && (
+            <div className="p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+              <div className="space-y-1 text-center sm:text-left">
+                <h4 className="text-base font-bold text-neutral-900 dark:text-white flex items-center justify-center sm:justify-start space-x-2">
+                  <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                  <span>Ready to Analyze Threat Risks?</span>
+                </h4>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-lg">
+                  Run MalVision threat analysis on this document to check for embedded scripts, malicious triggers, and security scores.
+                </p>
               </div>
 
-              {/* Right Side: Accurate Score Meter Ring Gauge (0-100) */}
-              <div className="flex flex-col items-center justify-center shrink-0">
-                <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      className="stroke-neutral-200 dark:stroke-neutral-800"
-                      strokeWidth="7"
-                      fill="transparent"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      className={!pdfData.isThreat ? 'stroke-emerald-500' : 'stroke-rose-500'}
-                      strokeWidth="7"
-                      strokeDasharray={264}
-                      strokeDashoffset={264 - (264 * pdfData.calculatedScore) / 100}
-                      strokeLinecap="round"
-                      fill="transparent"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
-                      {pdfData.calculatedScore}
-                    </span>
-                    <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider -mt-0.5">
-                      / 100
-                    </span>
+              <button
+                type="button"
+                onClick={handleRunThreatScan}
+                disabled={isScanningReport}
+                className="px-6 py-3 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold hover:opacity-90 transition cursor-pointer flex items-center space-x-2 shrink-0 shadow-md active:scale-95 disabled:opacity-50"
+              >
+                {isScanningReport ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Scanning Report...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    <span>Scan This Report</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* THREAT RESULT SECTION — SHOWN AFTER CLICKING "SCAN THIS REPORT" */}
+          {hasScannedReport && scanResult && (
+            <div className="p-5 sm:p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-5 shadow-sm animate-in fade-in duration-300">
+              {/* Primary Security Score Meter & Verdict Banner */}
+              <div className="flex items-center justify-between gap-6">
+                {/* Left Side: Result Verdict, Subtitle & Accurate Reason */}
+                <div className="space-y-3 min-w-0 flex-1">
+                  <div className="space-y-1">
+                    <h3
+                      className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                        !pdfData.isThreat
+                          ? 'text-emerald-500 dark:text-emerald-400'
+                          : 'text-rose-500 dark:text-rose-400'
+                      }`}
+                    >
+                      {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
+                      {pdfData.verdictReason}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-4 text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1">
+                    <span>Inspected at: <strong className="text-neutral-700 dark:text-neutral-300">{scanResult.timestamp}</strong></span>
+                    <span>•</span>
+                    <span>Pages analyzed: <strong className="text-neutral-700 dark:text-neutral-300">{pdfData.totalPages}</strong></span>
                   </div>
                 </div>
-                <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 mt-1">
-                  Security Score
-                </span>
+
+                {/* Right Side: Accurate Score Meter Ring Gauge (0-100) */}
+                <div className="flex flex-col items-center justify-center shrink-0">
+                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="42"
+                        className="stroke-neutral-200 dark:stroke-neutral-800"
+                        strokeWidth="7"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="42"
+                        className={!pdfData.isThreat ? 'stroke-emerald-500' : 'stroke-rose-500'}
+                        strokeWidth="7"
+                        strokeDasharray={264}
+                        strokeDashoffset={264 - (264 * pdfData.calculatedScore) / 100}
+                        strokeLinecap="round"
+                        fill="transparent"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
+                        {pdfData.calculatedScore}
+                      </span>
+                      <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider -mt-0.5">
+                        / 100
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 mt-1">
+                    Security Score
+                  </span>
+                </div>
               </div>
+
+              {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div
+                  onClick={() =>
+                    setActiveDetailModal(
+                      getAnalysisCheckDetail('Behavior Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                    )
+                  }
+                  className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                  title="Click for detailed analysis breakdown"
+                >
+                  <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
+                    Behavior Analysis
+                  </h5>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
+                    {pdfData.isThreat ? 'Suspicious' : 'Clean'}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    setActiveDetailModal(
+                      getAnalysisCheckDetail('Malware Detection', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                    )
+                  }
+                  className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                  title="Click for detailed analysis breakdown"
+                >
+                  <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                    <Target className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
+                    Malware Detection
+                  </h5>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
+                    {pdfData.isThreat ? 'Threat Found' : 'Clean'}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    setActiveDetailModal(
+                      getAnalysisCheckDetail('Static Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                    )
+                  }
+                  className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                  title="Click for detailed analysis breakdown"
+                >
+                  <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
+                    Static Analysis
+                  </h5>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
+                    {pdfData.hasJavaScript ? 'JS Flagged' : 'Clean'}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    setActiveDetailModal(
+                      getAnalysisCheckDetail('Heuristic Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                    )
+                  }
+                  className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                  title="Click for detailed analysis breakdown"
+                >
+                  <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
+                    Heuristic Analysis
+                  </h5>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
+                    Clean
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    setActiveDetailModal(
+                      getAnalysisCheckDetail('Sandbox Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                    )
+                  }
+                  className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                  title="Click for detailed analysis breakdown"
+                >
+                  <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                    <Cpu className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
+                    Sandbox Analysis
+                  </h5>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
+                    Clean
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    setActiveDetailModal(
+                      getAnalysisCheckDetail('Reputation Check', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
+                    )
+                  }
+                  className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
+                  title="Click for detailed analysis breakdown"
+                >
+                  <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
+                    Reputation Check
+                  </h5>
+                  <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
+                    Clean
+                  </span>
+                </div>
+              </div>
+
+              {/* MalVision AI Summary Section (Below Dynamic Analysis Checks) */}
+              <MalVisionAiSection scanResult={scanResult} fileName={pdfData.fileName} />
             </div>
-
-            {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div
-                onClick={() =>
-                  setActiveDetailModal(
-                    getAnalysisCheckDetail('Behavior Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
-                  )
-                }
-                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
-                title="Click for detailed analysis breakdown"
-              >
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                  <Activity className="w-4 h-4" />
-                </div>
-                <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
-                  Behavior Analysis
-                </h5>
-                <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  {pdfData.isThreat ? 'Suspicious' : 'Clean'}
-                </span>
-              </div>
-
-              <div
-                onClick={() =>
-                  setActiveDetailModal(
-                    getAnalysisCheckDetail('Malware Detection', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
-                  )
-                }
-                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
-                title="Click for detailed analysis breakdown"
-              >
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                  <Target className="w-4 h-4" />
-                </div>
-                <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
-                  Malware Detection
-                </h5>
-                <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  {pdfData.isThreat ? 'Threat Found' : 'Clean'}
-                </span>
-              </div>
-
-              <div
-                onClick={() =>
-                  setActiveDetailModal(
-                    getAnalysisCheckDetail('Static Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
-                  )
-                }
-                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
-                title="Click for detailed analysis breakdown"
-              >
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
-                  Static Analysis
-                </h5>
-                <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  {pdfData.hasJavaScript ? 'JS Flagged' : 'Clean'}
-                </span>
-              </div>
-
-              <div
-                onClick={() =>
-                  setActiveDetailModal(
-                    getAnalysisCheckDetail('Heuristic Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
-                  )
-                }
-                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
-                title="Click for detailed analysis breakdown"
-              >
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                  <Zap className="w-4 h-4" />
-                </div>
-                <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
-                  Heuristic Analysis
-                </h5>
-                <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  Clean
-                </span>
-              </div>
-
-              <div
-                onClick={() =>
-                  setActiveDetailModal(
-                    getAnalysisCheckDetail('Sandbox Analysis', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
-                  )
-                }
-                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
-                title="Click for detailed analysis breakdown"
-              >
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
-                  Sandbox Analysis
-                </h5>
-                <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  Clean
-                </span>
-              </div>
-
-              <div
-                onClick={() =>
-                  setActiveDetailModal(
-                    getAnalysisCheckDetail('Reputation Check', pdfData.isThreat, pdfData.hasJavaScript, pdfData.fileName)
-                  )
-                }
-                className="p-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#18181C] hover:border-neutral-400 dark:hover:border-neutral-600 transition cursor-pointer group hover:scale-[1.02] active:scale-95 space-y-1 shadow-xs"
-                title="Click for detailed analysis breakdown"
-              >
-                <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 w-fit group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                  <Globe className="w-4 h-4" />
-                </div>
-                <h5 className="text-[11px] font-bold text-neutral-900 dark:text-white truncate">
-                  Reputation Check
-                </h5>
-                <span className="text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 block">
-                  Clean
-                </span>
-              </div>
-            </div>
-
-            {/* MalVision AI Summary Section (Below Dynamic Analysis Checks) */}
-            <MalVisionAiSection scanResult={scanResult} fileName={pdfData.fileName} />
-          </div>
+          )}
 
           {/* Bottom Actions Row */}
           <div className="pt-2 border-t border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -620,14 +677,16 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
               <span>Scan Another File</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => downloadMalVisionPdfReport(scanResult)}
-              className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-2 shadow-md active:scale-95"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Report</span>
-            </button>
+            {hasScannedReport && scanResult && (
+              <button
+                type="button"
+                onClick={() => downloadMalVisionPdfReport(scanResult)}
+                className="w-full sm:w-auto py-3 px-6 rounded-2xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold hover:opacity-90 transition cursor-pointer flex items-center justify-center space-x-2 shadow-md active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Report</span>
+              </button>
+            )}
           </div>
 
           {/* Analysis Check Detail Modal */}
