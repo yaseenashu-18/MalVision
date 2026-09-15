@@ -12,6 +12,9 @@ import {
   Cpu,
   Globe,
   Zap,
+  Minus,
+  Plus,
+  Maximize2,
 } from 'lucide-react';
 import { saveScanToHistory } from '../lib/historyStore';
 import { extractPdfData, type ExtractedPdfDetails } from '../lib/pdfAnalyzer';
@@ -30,6 +33,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [activeDetailModal, setActiveDetailModal] = useState<AnalysisDetailInfo | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,13 +85,11 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
         target: file.name,
         targetType: 'pdf',
         status: extracted.isThreat ? 'Malicious' : 'Safe',
-        score: extracted.isThreat ? 88 : 8,
+        score: extracted.calculatedScore,
         summary: extracted.isThreat
           ? `Threat detected in PDF stream analysis for ${file.name}.`
           : `PDF structure and content validated for ${file.name}. No threats detected.`,
-        explanation: extracted.isThreat
-          ? extracted.threatDetails.join(' ')
-          : 'Document structure validated. No embedded malicious JavaScript streams or dangerous launch triggers identified.',
+        explanation: extracted.verdictReason,
         findings: extracted.isThreat
           ? extracted.threatDetails.map((detail) => ({
               type: 'danger',
@@ -156,6 +158,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
     setSelectedFile(null);
     setPdfData(null);
     setScanResult(null);
+    setZoomLevel(100);
   };
 
   return (
@@ -168,7 +171,6 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
         onChange={handleInputChange}
         className="hidden"
       />
-
 
       {/* STATE 1 — NO FILE SELECTED (Drop Zone) */}
       {!selectedFile && (
@@ -244,25 +246,62 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
 
           {/* MAIN GRID: PDF PREVIEW (Left) + DYNAMICALLY EXTRACTED METADATA (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* LEFT COLUMN (7 cols): ACTUAL PDF PREVIEW (Renders real PDF pages dynamically, no generic icon) */}
+            {/* LEFT COLUMN (7 cols): ACTUAL PDF PREVIEW (Scrollable PDF in box with Zoom Controls) */}
             <div className="lg:col-span-7 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] p-4 flex flex-col justify-between space-y-3 shadow-sm">
               <div className="flex items-center justify-between text-xs pb-2 border-b border-neutral-200/80 dark:border-neutral-800">
                 <span className="font-bold text-neutral-900 dark:text-white flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-neutral-400" />
-                  <span>PDF Document Content Preview</span>
+                  <span>PDF Content Preview</span>
                 </span>
-                <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
-                  {pdfData.totalPages} {pdfData.totalPages === 1 ? 'Page' : 'Pages'}
-                </span>
+
+                {/* Interactive Zoom Controls */}
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((z) => Math.max(50, z - 10))}
+                    className="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                    title="Zoom Out"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+
+                  <span className="text-[11px] font-bold text-neutral-700 dark:text-neutral-300 px-2 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                    {zoomLevel}%
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((z) => Math.min(200, z + 10))}
+                    className="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition cursor-pointer"
+                    title="Zoom In"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel(100)}
+                    className="p-1.5 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition cursor-pointer border border-neutral-200 dark:border-neutral-700"
+                    title="Reset Zoom"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Native PDF Render Container via Object Blob URL */}
-              <div className="w-full h-[480px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#121215] overflow-hidden shadow-inner relative">
+              {/* PDF Preview Container Box (No Slide, Full Scrollable PDF with Zoom) */}
+              <div className="w-full h-[540px] rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#121215] overflow-auto shadow-inner relative">
                 {pdfBlobUrl ? (
                   <iframe
-                    src={`${pdfBlobUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+                    src={`${pdfBlobUrl}#zoom=${zoomLevel}&toolbar=1&navpanes=0&scrollbar=1`}
                     title={pdfData.fileName}
-                    className="w-full h-full border-none rounded-2xl"
+                    className="w-full h-full border-none rounded-2xl transition-all duration-200"
+                    style={{
+                      transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined,
+                      transformOrigin: 'top left',
+                      width: zoomLevel !== 100 ? `${(100 / zoomLevel) * 100}%` : '100%',
+                      height: zoomLevel !== 100 ? `${(100 / zoomLevel) * 100}%` : '100%',
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs text-neutral-400">
@@ -377,38 +416,72 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* BOTTOM SECTION: SCANNING HISTORY & SECURITY CHECKS */}
-          <div className="p-5 sm:p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-5">
-            {/* Primary Status Banner */}
-            <div className="flex items-center space-x-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                pdfData.isThreat
-                  ? 'bg-rose-500/10 border border-rose-500/30 text-rose-500'
-                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
-              }`}>
-                {!pdfData.isThreat ? (
-                  <ShieldCheck className="w-7 h-7" />
-                ) : (
-                  <ShieldAlert className="w-7 h-7 text-rose-500" />
-                )}
+          {/* BOTTOM SECTION: SCANNING HISTORY & ACCURATE SECURITY SCORE METER */}
+          <div className="p-5 sm:p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#141417] space-y-5 shadow-sm">
+            {/* Primary Security Score Meter & Verdict Banner */}
+            <div className="flex items-center justify-between gap-6">
+              {/* Left Side: Result Verdict, Subtitle & Accurate Reason */}
+              <div className="space-y-3 min-w-0 flex-1">
+                <div className="space-y-1">
+                  <h3
+                    className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                      !pdfData.isThreat
+                        ? 'text-emerald-500 dark:text-emerald-400'
+                        : 'text-rose-500 dark:text-rose-400'
+                    }`}
+                  >
+                    {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
+                    {pdfData.verdictReason}
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-4 text-xs text-neutral-400 dark:text-neutral-500 font-medium pt-1">
+                  <span>Inspected at: <strong className="text-neutral-700 dark:text-neutral-300">{scanResult.timestamp}</strong></span>
+                  <span>•</span>
+                  <span>Pages analyzed: <strong className="text-neutral-700 dark:text-neutral-300">{pdfData.totalPages}</strong></span>
+                </div>
               </div>
-              <div className="space-y-0.5">
-                <h3
-                  className={`text-xl font-extrabold tracking-tight ${
-                    !pdfData.isThreat
-                      ? 'text-emerald-500 dark:text-emerald-400'
-                      : 'text-rose-500 dark:text-rose-400'
-                  }`}
-                >
-                  {!pdfData.isThreat ? 'No Threats Found' : 'Threat Found'}
-                </h3>
-                <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium">
-                  {!pdfData.isThreat
-                    ? 'This PDF appears to be safe. PDF structure and streams have been verified.'
-                    : 'Threat indicators identified in PDF binary stream.'}
-                </p>
+
+              {/* Right Side: Accurate Score Meter Ring Gauge (0-100) */}
+              <div className="flex flex-col items-center justify-center shrink-0">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      className="stroke-neutral-200 dark:stroke-neutral-800"
+                      strokeWidth="7"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      className={!pdfData.isThreat ? 'stroke-emerald-500' : 'stroke-rose-500'}
+                      strokeWidth="7"
+                      strokeDasharray={264}
+                      strokeDashoffset={264 - (264 * pdfData.calculatedScore) / 100}
+                      strokeLinecap="round"
+                      fill="transparent"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
+                      {pdfData.calculatedScore}
+                    </span>
+                    <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider -mt-0.5">
+                      / 100
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 mt-1">
+                  Security Score
+                </span>
               </div>
-            </div>
+            </div>    </div>
 
             {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

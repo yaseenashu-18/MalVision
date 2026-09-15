@@ -23,6 +23,8 @@ export interface ExtractedPdfDetails {
   isEncrypted: boolean;
   isThreat: boolean;
   threatDetails: string[];
+  calculatedScore: number;
+  verdictReason: string;
 }
 
 /**
@@ -148,6 +150,21 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfDetails> {
     threatDetails.push('High-risk filename pattern matches known exploit payload repository signatures.');
   }
 
+  // 7. Calculate Accurate Score & Verdict Reason
+  let calculatedScore = 98;
+  if (isThreat) {
+    calculatedScore = 24;
+    if (hasJavaScript && nameLower.includes('payload')) calculatedScore = 12;
+  } else {
+    if (hasEmbeddedFiles) calculatedScore -= 5;
+    if (isEncrypted) calculatedScore -= 5;
+    if (calculatedScore < 85) calculatedScore = 85;
+  }
+
+  const verdictReason = isThreat
+    ? threatDetails.join(' ') || 'High risk content detected in PDF stream.'
+    : `PDF structure and binary streams validated. Zero malicious JavaScript streams (/JS), automated launch triggers (/OpenAction), or embedded exploit objects detected across all ${totalPages} page(s).`;
+
   // File size display string
   const fileSizeFormatted =
     file.size >= 1024 * 1024
@@ -173,5 +190,7 @@ export async function extractPdfData(file: File): Promise<ExtractedPdfDetails> {
     isEncrypted,
     isThreat,
     threatDetails,
+    calculatedScore,
+    verdictReason,
   };
 }
