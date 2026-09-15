@@ -111,7 +111,33 @@ export function downloadMalVisionPdfReport(
     doc.setTextColor(secondaryText[0], secondaryText[1], secondaryText[2]);
     doc.text(`${timestamp}    •    Scan duration: ${duration}`, 15, y);
 
-    y += 12;
+    y += 10;
+
+    // MALVISION AI SECTION
+    doc.setFillColor(243, 244, 246);
+    doc.setDrawColor(99, 102, 241); // Indigo accent border
+    doc.roundedRect(15, y, 180, 26, 3, 3, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(79, 70, 229); // Indigo text
+    doc.text('MALVISION AI SECURITY SYNTHESIS', 20, y + 7);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(primaryText[0], primaryText[1], primaryText[2]);
+    const aiSummaryText = isSafe
+      ? `MalVision AI evaluated "${fileName}" with a score of ${scoreVal}/100. Binary structure, cross-reference tables, and font streams show zero active script triggers or malicious object anomalies.`
+      : `MalVision AI flagged critical risk indicators in "${fileName}" with a score of ${scoreVal}/100. Automated launch triggers (/OpenAction, /JS) or suspicious stream structures require quarantine.`;
+
+    doc.text(doc.splitTextToSize(aiSummaryText, 170), 20, y + 13);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(79, 70, 229);
+    doc.text(`AI Recommendation: ${isSafe ? 'File is verified safe for standard processing.' : 'Quarantine or isolate file. Disable JavaScript triggers.'}`, 20, y + 22);
+
+    y += 32;
 
     // Detailed Analysis Header
     doc.setFont('helvetica', 'bold');

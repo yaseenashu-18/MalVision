@@ -14,6 +14,7 @@ import { saveScanToHistory } from '../lib/historyStore';
 import type { ScanResultData } from '../types';
 import { downloadMalVisionPdfReport } from '../lib/pdfReportGenerator';
 import { AnalysisDetailModal, getAnalysisCheckDetail, type AnalysisDetailInfo } from './AnalysisDetailModal';
+import { MalVisionAiSection } from './MalVisionAiSection';
 
 interface FileScanProps {
   user?: { name: string; email: string } | null;
@@ -822,6 +823,9 @@ export const FileScan: React.FC<FileScanProps> = ({ user }) => {
                 </span>
               </div>
             </div>
+
+            {/* MalVision AI Synthesis Section */}
+            <MalVisionAiSection scanResult={scanResult} fileName={selectedFile.name} />
 
             {/* 4. Detailed Analysis (Clean Vertical List with Individual Scores on the RIGHT Side) */}
             <div className="space-y-3">

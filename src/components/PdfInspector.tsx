@@ -19,6 +19,7 @@ import { extractPdfData, type ExtractedPdfDetails } from '../lib/pdfAnalyzer';
 import type { ScanResultData } from '../types';
 import { downloadMalVisionPdfReport } from './HistoryModal';
 import { AnalysisDetailModal, getAnalysisCheckDetail, type AnalysisDetailInfo } from './AnalysisDetailModal';
+import { MalVisionAiSection } from './MalVisionAiSection';
 
 interface PdfInspectorProps {
   user?: { name: string; email: string } | null;
@@ -480,6 +481,9 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                 </span>
               </div>
             </div>
+
+            {/* MalVision AI Synthesis Section */}
+            <MalVisionAiSection scanResult={scanResult} fileName={pdfData.fileName} />
 
             {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
