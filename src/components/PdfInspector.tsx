@@ -481,7 +481,7 @@ export const PdfInspector: React.FC<PdfInspectorProps> = ({ user }) => {
                   Security Score
                 </span>
               </div>
-            </div>    </div>
+            </div>
 
             {/* Dynamic Analysis Checks (Clickable for extra explanation) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
