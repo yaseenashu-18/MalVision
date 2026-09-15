@@ -1,8 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   FileUp,
-  ShieldCheck,
-  ShieldAlert,
   Loader2,
   RefreshCw,
   Download,
