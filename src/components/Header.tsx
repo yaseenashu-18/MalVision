@@ -154,16 +154,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             History
           </button>
-          <button
-            onClick={() => onNavigate('features')}
-            className={`px-3 py-1.5 text-xs font-semibold transition-colors duration-200 cursor-pointer ${
-              activeTab === 'features'
-                ? 'text-neutral-900 dark:text-white font-bold'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
-            }`}
-          >
-            Features
-          </button>
         </nav>
 
         {/* Right Tools (Desktop): Appearance Toggle -> CTA / Profile Dropdown */}
@@ -361,17 +351,6 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 History
-              </button>
-
-              <button
-                onClick={() => handleMobileNav('features')}
-                className={`text-left py-2.5 px-3 rounded-xl transition ${
-                  activeTab === 'features'
-                    ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold'
-                    : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
-                }`}
-              >
-                Features
               </button>
             </nav>
           </div>

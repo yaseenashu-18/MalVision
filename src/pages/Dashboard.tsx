@@ -1,7 +1,6 @@
 import React from 'react';
 import { Hero } from '../components/Hero';
 import { ThreatScanner } from '../components/ThreatScanner';
-import { FeaturesSection } from '../components/FeaturesSection';
 import type { ScannerTabId } from '../types';
 
 interface DashboardProps {
@@ -32,9 +31,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeScannerTab = 'file-s
         onTabChange={onScanTabSelect}
         user={user}
       />
-
-      {/* Features & Capability Cards Section */}
-      <FeaturesSection onScanSelect={onScanTabSelect} />
     </main>
   );
 };
